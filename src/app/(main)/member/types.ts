@@ -1,0 +1,34 @@
+export interface MemberData {
+  _id: string;
+  name: string;
+  phone: string;
+  institution_id: string | null;
+  institution_name: string | null;
+  member_number: string;
+  parent_number: string;
+  gender: string;
+  talent: string;
+  birth_place: string;
+  birth_date: Date;
+  religion: string;
+  nationality: string;
+  rt: string;
+  rw: string;
+  village: string;
+  sub_district: string;
+  district: string;
+  province: string;
+  talent_hobby: string;
+  father_name: string;
+  father_birth_place: string;
+  father_birth_date: Date;
+  mother_name: string;
+  mother_birth_place: string;
+  mother_birth_date: Date;
+  parent_address: string;
+  parent_phone: string;
+  entry_date: Date;
+  entry_level: string;
+  exit_date: Date;
+  exit_reason: string;
+}
