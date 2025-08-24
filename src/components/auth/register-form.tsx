@@ -46,7 +46,7 @@ export function RegisterForm({ className, ...props }: React.ComponentProps<'form
   const handleRegisterUser = async (values: any) => {
     await toast.promise(registerUserMutation.mutateAsync(values), {
       loading: 'Mengirim permintaan...',
-      success: 'Register berhasil!',
+      success: 'Register berhasil! Silahkan menunggu persetujuan admin',
       error: (err) => `Gagal menyimpan request: ${err.message}`,
     });
   };
