@@ -154,8 +154,8 @@ export const POST = async (req: NextRequest) => {
       bidangUtama[key] = (bidangUtama[key] || 0) + 1;
     });
 
-    // Syarat: TKU Purwa: 5 TKK per bidang, Madya: 3 TKK per bidang, Utama: 2 TKK per bidang (masing-masing bidang berbeda)
-    const bidangKurangPurwa = Object.values(bidangPurwa).filter((count) => count < 5).length > 0 || Object.keys(bidangPurwa).length === 0;
+    // Syarat: TKU Purwa: 9 TKK per bidang, Madya: 3 TKK per bidang, Utama: 2 TKK per bidang (masing-masing bidang berbeda)
+    const bidangKurangPurwa = Object.values(bidangPurwa).filter((count) => count < 9).length > 0 || Object.keys(bidangPurwa).length === 0;
     const bidangKurangMadya = Object.values(bidangMadya).filter((count) => count < 3).length > 0 || Object.keys(bidangMadya).length === 0;
     const bidangKurangUtama = Object.values(bidangUtama).filter((count) => count < 2).length > 0 || Object.keys(bidangUtama).length === 0;
 
