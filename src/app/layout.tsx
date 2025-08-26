@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: 'Garuda Penegak',
   description: 'Platform Manajemen Anggota dan Kegiatan',
   icons: {
-    icon: '/icon.png',
+    icon: '/icon.svg',
   },
 };
 

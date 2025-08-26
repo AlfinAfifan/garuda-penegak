@@ -106,7 +106,7 @@ function Sidebar({ className, isCollapsed = false, onToggleCollapse }: SidebarPr
     <div className={cn('flex flex-col h-full', className)}>
       {/* Logo */}
       <div className={cn('flex items-center gap-2', isCollapsed ? 'justify-center px-1 py-4' : 'p-6')}>
-        <Image src="/icon.png" alt="Logo" width={90} height={90} />
+        <Image src="/image/logo.png" alt="Logo" width={90} height={90} />
         {!isCollapsed && <span className="text-lg font-bold text-gray-900">Garuda Penegak</span>}
       </div>
       <span className="mx-auto px-3 py-1 rounded-full bg-orange-50 text-xs text-orange-600 -mt-2">

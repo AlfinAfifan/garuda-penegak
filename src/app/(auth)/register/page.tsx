@@ -10,7 +10,7 @@ export default function RegisterPage() {
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex justify-center gap-2 md:justify-start">
           <a href="#" className="flex items-center gap-2 font-medium">
-            <Image src="/icon.png" alt="Logo" width={30} height={30} />
+            <Image src="/image/logo.png" alt="Logo" width={30} height={30} />
             Garuda Penegak
           </a>
         </div>

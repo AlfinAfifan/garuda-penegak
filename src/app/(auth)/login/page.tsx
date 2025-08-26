@@ -58,7 +58,7 @@ export default function LoginPage() {
           <CardHeader className="space-y-1">
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center mb-4">
-                <Image src="/icon.png" alt="Logo" width={100} height={100} />
+                <Image src="/image/logo.png" alt="Logo" width={100} height={100} />
               </div>
               <h1 className="text-3xl font-bold text-primary-500 mb-2">Garuda Penegak</h1>
               <p className="text-gray-500">Selamat datang kembali</p>
