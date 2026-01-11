@@ -41,37 +41,37 @@ const sidebarItems: SidebarItem[] = [
     name: 'Dashboard',
     href: '/dashboard',
     icon: LayoutGrid,
-    roles: ['user', 'admin', 'super_admin'],
+    roles: ['user', 'admin', 'admin_kecamatan', 'super_admin'],
   },
   {
     name: 'Lembaga',
     href: '/institution',
     icon: Building,
-    roles: ['admin', 'super_admin'],
+    roles: ['admin', 'admin_kecamatan', 'super_admin'],
   },
   {
     name: 'Anggota',
     href: '/member',
     icon: UserCheck,
-    roles: ['user', 'admin', 'super_admin'],
+    roles: ['user', 'admin', 'admin_kecamatan', 'super_admin'],
   },
   {
     name: 'TKU',
     href: '/tku',
     icon: Trophy,
-    roles: ['user', 'admin', 'super_admin'],
+    roles: ['user', 'admin', 'admin_kecamatan', 'super_admin'],
   },
   {
     name: 'TKK',
     href: '/tkk',
     icon: Award,
-    roles: ['user', 'admin', 'super_admin'],
+    roles: ['user', 'admin', 'admin_kecamatan', 'super_admin'],
   },
   {
     name: 'Garuda',
     href: '/garuda',
     icon: Award,
-    roles: ['user', 'admin', 'super_admin'],
+    roles: ['user', 'admin', 'admin_kecamatan', 'super_admin'],
   },
   {
     name: 'Jenis TKK',
@@ -226,10 +226,6 @@ function Navbar({ buttonAction, onMenuClick }: NavbarProps) {
     await signOut({ callbackUrl: '/login' });
   };
 
-  useEffect(() => {
-    console.log(session);
-  }, [session]);
-
   return (
     <header className="flex items-center justify-between px-4 mb-4 lg:px-6">
       {/* Mobile menu button */}
@@ -256,7 +252,7 @@ function Navbar({ buttonAction, onMenuClick }: NavbarProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="relative uppercase font-semibold bg-white hover:bg-gray-50 text-primary-500 shadow">
-              {session?.user?.institution_name || session?.user?.name}
+              {session?.user?.role === 'admin' ? session?.user?.institution_name : session?.user?.name}
               <ChevronDown className="w-4 h-4 ml-2" />
             </Button>
           </DropdownMenuTrigger>

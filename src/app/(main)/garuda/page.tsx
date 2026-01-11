@@ -18,10 +18,12 @@ import { UpdateConfirmation } from '@/components/ui/update-confirmation';
 import { useSession } from 'next-auth/react';
 
 export default function GarudaPage() {
-  const {data: session} = useSession()
+  const { data: session } = useSession();
   const queryClient = useQueryClient();
   const { setButtonAction } = useNavbarAction();
   const isSuperAdmin = session?.user?.role === 'super_admin';
+  const canWrite = session?.user?.role === 'super_admin' || session?.user?.role === 'admin' || session?.user?.role === 'user';
+  const isAdminKecamatan = session?.user?.role === 'admin_kecamatan';
 
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
@@ -120,13 +122,15 @@ export default function GarudaPage() {
 
   useEffect(() => {
     setButtonAction(
-      <Button className="bg-primary-500 hover:bg-primary-600" onClick={() => setModalOpen(true)}>
-        <Plus className="w-4 h-4 mr-2" />
-        Tambah Garuda
-      </Button>
+      canWrite ? (
+        <Button className="bg-primary-500 hover:bg-primary-600" onClick={() => setModalOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Tambah Garuda
+        </Button>
+      ) : undefined
     );
     return () => setButtonAction(undefined);
-  }, [setButtonAction]);
+  }, [setButtonAction, canWrite]);
 
   const columns: ColumnDef<GarudaData>[] = [
     { header: 'Anggota', accessor: 'member_id.name' },
@@ -147,9 +151,11 @@ export default function GarudaPage() {
             </Button>
           )}
 
-          <Button disabled={item.status !== 0} onClick={() => handleDelete(item)} size="icon" className="size-8 bg-red-50 hover:bg-red-100 text-red-600">
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {canWrite && (
+            <Button disabled={item.status !== 0} onClick={() => handleDelete(item)} size="icon" className="size-8 bg-red-50 hover:bg-red-100 text-red-600">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       ),
     },
@@ -219,7 +225,7 @@ export default function GarudaPage() {
               description: 'Tambahkan data garuda untuk mengakses sistem',
               buttonText: 'Tambah Garuda',
               icon: Plus,
-              onButtonClick: () => setModalOpen(true),
+              onButtonClick:session?.user?.role !== 'admin_kecamatan' ? () => setModalOpen(true) : undefined,
             }}
           />
           <CustomPagination

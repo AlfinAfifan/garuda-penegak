@@ -14,10 +14,13 @@ import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { InputModal } from '@/components/type-tkk/InputModal';
 import { Input } from '@/components/ui/input';
 import { useNavbarAction } from '../layout';
+import { useSession } from 'next-auth/react';
 
 export default function TypeTkkPage() {
+  const { data: session } = useSession();
   const queryClient = useQueryClient();
   const { setButtonAction } = useNavbarAction();
+  const canWrite = session?.user?.role === 'super_admin' || session?.user?.role === 'admin';
 
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
@@ -115,14 +118,16 @@ export default function TypeTkkPage() {
   };
 
   useEffect(() => {
-      setButtonAction(
+    setButtonAction(
+      canWrite ? (
         <Button className="bg-primary-500 hover:bg-primary-600" onClick={() => setModalOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Tambah Jenis TKK
         </Button>
-      );
-      return () => setButtonAction(undefined);
-    }, [setButtonAction]);
+      ) : undefined
+    );
+    return () => setButtonAction(undefined);
+  }, [setButtonAction, canWrite]);
 
   const columns: ColumnDef<TypeTkkData>[] = [
     { header: 'Nama', accessor: 'name' },
@@ -131,16 +136,17 @@ export default function TypeTkkPage() {
     {
       header: 'Actions',
       accessor: 'id',
-      cell: (item) => (
-        <div className="flex gap-4 items-center">
-          <Button onClick={() => handleEdit(item)} size="icon" className="size-8 bg-blue-50 hover:bg-blue-100 text-blue-600">
-            <SquarePen className="h-4 w-4" />
-          </Button>
-          <Button onClick={() => handleDelete(item)} size="icon" className="size-8 bg-red-50 hover:bg-red-100 text-red-600">
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
+      cell: (item) =>
+        canWrite && (
+          <div className="flex gap-4 items-center">
+            <Button onClick={() => handleEdit(item)} size="icon" className="size-8 bg-blue-50 hover:bg-blue-100 text-blue-600">
+              <SquarePen className="h-4 w-4" />
+            </Button>
+            <Button onClick={() => handleDelete(item)} size="icon" className="size-8 bg-red-50 hover:bg-red-100 text-red-600">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
     },
   ];
 

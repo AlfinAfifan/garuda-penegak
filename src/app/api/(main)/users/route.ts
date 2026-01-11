@@ -80,7 +80,7 @@ export const POST = async (req: Request) => {
 
     // Parse the request body
     const body = await req.json();
-    const { name, email, password, role, institution_id } = body;
+    const { name, email, password, role, institution_id, sub_district } = body;
 
     const existingEmail = await User.findOne({ email, is_delete: 0 });
 
@@ -96,10 +96,17 @@ export const POST = async (req: Request) => {
       }
     }
 
+    if (sub_district) {
+      const existingUser = await User.findOne({ sub_district: sub_district, is_delete: 0 });
+      if (existingUser) {
+        return new NextResponse('Sudah ada user terdaftar pada lembaga ini', { status: 400 });
+      }
+    }
+
     const hashedPassword = await hash(password, 10);
 
     // Create a new user
-    const newUser = new User({ name, email, password: hashedPassword, role, institution_id, status: 1 });
+    const newUser = new User({ name, email, password: hashedPassword, role, institution_id, sub_district, status: 1 });
     await newUser.save();
 
     // Return the created user without password

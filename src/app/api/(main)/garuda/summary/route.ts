@@ -32,13 +32,32 @@ export const GET = async (req: NextRequest) => {
       { $match: { 'member.is_delete': 0 } },
     ];
 
-    // If not admin or super_admin, filter by user's institution
-    if (token.role !== 'admin' && token.role !== 'super_admin') {
+    // If not admin or super_admin, filter by user's institution or sub_district
+    if (token.role !== 'admin' && token.role !== 'admin_kecamatan' && token.role !== 'super_admin') {
       pipeline.push({
         $match: {
           'member.institution_id': new Types.ObjectId(token.institution_id),
         },
       });
+    } else if (token.role === 'admin_kecamatan' && token.sub_district) {
+      // Untuk admin_kecamatan, filter berdasarkan sub_district dari institution
+      pipeline.push(
+        {
+          $lookup: {
+            from: 'institutions',
+            localField: 'member.institution_id',
+            foreignField: '_id',
+            as: 'institution',
+          },
+        },
+        { $unwind: { path: '$institution', preserveNullAndEmptyArrays: true } },
+        {
+          $match: {
+            'institution.sub_district': token.sub_district,
+            'institution.is_delete': 0,
+          },
+        }
+      );
     }
 
     // Get total garuda

@@ -74,6 +74,12 @@ export const DELETE = async (req: NextRequest, { params }: { params: Promise<{ i
     if (!token) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
+
+    // admin_kecamatan tidak boleh delete garuda
+    if (token.role === 'admin_kecamatan') {
+      return new NextResponse(JSON.stringify({ message: 'Anda tidak memiliki akses untuk menghapus data Garuda.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+    }
+
     const user_id = token.id;
 
     const { id } = await params;

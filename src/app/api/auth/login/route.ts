@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
       role: userCheck.role,
       institution_id: institutionId,
       institution_name: institutionName,
+      sub_district: userCheck.sub_district || '',
     };
 
     const { accessToken, refreshToken } = generateTokenPair(tokenPayload);
@@ -73,6 +74,7 @@ export async function POST(request: NextRequest) {
         role: userCheck.role,
         institution_id: institutionId,
         institution_name: institutionName,
+        sub_district: userCheck.sub_district || '',
       },
     });
 

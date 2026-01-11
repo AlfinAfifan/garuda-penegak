@@ -24,11 +24,24 @@ export const GET = async (req: NextRequest) => {
     let memberFilter = {};
     let institutionFilter = {};
     let logFilter = {};
+    let institutionIds: any[] = [];
+    let memberIds: any[] = [];
 
     if (token.role === 'user' && token.institution_id) {
       memberFilter = { institution_id: token.institution_id, is_delete: 0 };
       institutionFilter = { _id: token.institution_id, is_delete: 0 };
       logFilter = { institution_id: token.institution_id, is_delete: 0 };
+    } else if (token.role === 'admin_kecamatan' && token.sub_district) {
+      // Untuk admin_kecamatan, filter berdasarkan sub_district
+      const institutions = await Institution.find({ sub_district: token.sub_district, is_delete: 0 }, { _id: 1 });
+      institutionIds = institutions.map((inst) => inst._id);
+
+      const members = await Member.find({ institution_id: { $in: institutionIds }, is_delete: 0 }, { _id: 1 });
+      memberIds = members.map((m) => m._id);
+
+      memberFilter = { institution_id: { $in: institutionIds }, is_delete: 0 };
+      institutionFilter = { sub_district: token.sub_district, is_delete: 0 };
+      logFilter = { institution_id: { $in: institutionIds }, is_delete: 0 };
     } else {
       memberFilter = { is_delete: 0 };
       institutionFilter = { is_delete: 0 };
@@ -65,6 +78,9 @@ export const GET = async (req: NextRequest) => {
         },
       ]);
       totalTku = tkuCount.length > 0 ? tkuCount[0].total : 0;
+    } else if (token.role === 'admin_kecamatan' && memberIds.length > 0) {
+      // Count Tku for admin_kecamatan by memberIds
+      totalTku = await Tku.countDocuments({ member_id: { $in: memberIds }, is_delete: 0 });
     } else {
       totalTku = await Tku.countDocuments({ is_delete: 0 });
     }
@@ -94,6 +110,9 @@ export const GET = async (req: NextRequest) => {
         },
       ]);
       totalTkk = tkkCount.length > 0 ? tkkCount[0].total : 0;
+    } else if (token.role === 'admin_kecamatan' && memberIds.length > 0) {
+      // Count Tkk for admin_kecamatan by memberIds
+      totalTkk = await Tkk.countDocuments({ member_id: { $in: memberIds }, is_delete: 0 });
     } else {
       totalTkk = await Tkk.countDocuments({ is_delete: 0 });
     }
@@ -147,8 +166,10 @@ export const GET = async (req: NextRequest) => {
         { $count: 'total' },
       ]);
       detailTku.laksana = tkuLaksanaCount.length > 0 ? tkuLaksanaCount[0].total : 0;
-
-      
+    } else if (token.role === 'admin_kecamatan' && memberIds.length > 0) {
+      // Count TKU for admin_kecamatan
+      detailTku.bantara = await Tku.countDocuments({ member_id: { $in: memberIds }, bantara: true, is_delete: 0 });
+      detailTku.laksana = await Tku.countDocuments({ member_id: { $in: memberIds }, laksana: true, is_delete: 0 });
     } else {
       // Admin view - count all
       detailTku.bantara = await Tku.countDocuments({ bantara: true, is_delete: 0 });
@@ -222,6 +243,11 @@ export const GET = async (req: NextRequest) => {
         { $count: 'total' },
       ]);
       detailTkk.utama = tkkUtamaCount.length > 0 ? tkkUtamaCount[0].total : 0;
+    } else if (token.role === 'admin_kecamatan' && memberIds.length > 0) {
+      // Count TKK for admin_kecamatan
+      detailTkk.purwa = await Tkk.countDocuments({ member_id: { $in: memberIds }, purwa: true, is_delete: 0 });
+      detailTkk.madya = await Tkk.countDocuments({ member_id: { $in: memberIds }, madya: true, is_delete: 0 });
+      detailTkk.utama = await Tkk.countDocuments({ member_id: { $in: memberIds }, utama: true, is_delete: 0 });
     } else {
       // Admin view - count all
       detailTkk.purwa = await Tkk.countDocuments({ purwa: true, is_delete: 0 });
@@ -275,6 +301,10 @@ export const GET = async (req: NextRequest) => {
         { $count: 'total' },
       ]);
       garudaData.approved = garudaApprovedCount.length > 0 ? garudaApprovedCount[0].total : 0;
+    } else if (token.role === 'admin_kecamatan' && memberIds.length > 0) {
+      // Count Garuda for admin_kecamatan
+      garudaData.pending = await Garuda.countDocuments({ member_id: { $in: memberIds }, status: 0, is_delete: 0 });
+      garudaData.approved = await Garuda.countDocuments({ member_id: { $in: memberIds }, status: 1, is_delete: 0 });
     } else {
       // Admin view - count all
       garudaData.pending = await Garuda.countDocuments({ status: 0, is_delete: 0 });
@@ -292,6 +322,18 @@ export const GET = async (req: NextRequest) => {
       });
       userData.inactive = await User.countDocuments({
         institution_id: token.institution_id,
+        status: 0,
+        is_delete: 0,
+      });
+    } else if (token.role === 'admin_kecamatan' && institutionIds.length > 0) {
+      // For admin_kecamatan, count users from institutions in their sub_district
+      userData.active = await User.countDocuments({
+        institution_id: { $in: institutionIds },
+        status: 1,
+        is_delete: 0,
+      });
+      userData.inactive = await User.countDocuments({
+        institution_id: { $in: institutionIds },
         status: 0,
         is_delete: 0,
       });

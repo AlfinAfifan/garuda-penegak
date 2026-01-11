@@ -15,6 +15,7 @@ declare module 'next-auth' {
       role: string;
       institution_id: string;
       institution_name?: string;
+      sub_district?: string;
     } & DefaultSession['user'];
   }
 
@@ -23,6 +24,7 @@ declare module 'next-auth' {
     role?: string;
     institution_id?: string;
     institution_name?: string;
+    sub_district?: string;
     whitelist_domain?: string[];
     access_token?: string;
     refresh_token?: string;
@@ -37,6 +39,7 @@ declare module 'next-auth/jwt' {
     role?: string;
     institution_id?: string;
     institution_name?: string;
+    sub_district?: string;
     whitelist_domain?: string[];
     access_token?: string;
     refresh_token?: string;

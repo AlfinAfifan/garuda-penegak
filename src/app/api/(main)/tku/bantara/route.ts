@@ -72,6 +72,20 @@ export const GET = async (req: NextRequest) => {
       },
       { $unwind: { path: '$institution', preserveNullAndEmptyArrays: true } },
 
+      // Filter institution yang tidak terhapus
+      { $match: { 'institution.is_delete': 0 } },
+
+      // Filter by sub_district untuk admin_kecamatan
+      ...(token && token.role === 'admin_kecamatan' && token.sub_district
+        ? [
+            {
+              $match: {
+                'institution.sub_district': token.sub_district,
+              },
+            },
+          ]
+        : []),
+
       {
         $facet: {
           data: [
@@ -128,8 +142,18 @@ export const GET = async (req: NextRequest) => {
   }
 };
 
-export const POST = async (req: Request) => {
+export const POST = async (req: NextRequest) => {
   try {
+    // Check authorization
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+    // admin_kecamatan tidak boleh create TKU
+    if (token.role === 'admin_kecamatan') {
+      return new NextResponse(JSON.stringify({ message: 'Anda tidak memiliki akses untuk menambah data TKU.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+    }
+
     await connect();
 
     const body = await req.json();

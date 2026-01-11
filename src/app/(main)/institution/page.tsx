@@ -18,6 +18,8 @@ import { utils, writeFile } from 'xlsx';
 import { useSession } from 'next-auth/react';
 
 export default function InstitutionPage() {
+  const { data: session } = useSession();
+
   const queryClient = useQueryClient();
   const { setButtonAction } = useNavbarAction();
 
@@ -30,7 +32,7 @@ export default function InstitutionPage() {
 
   const [initialValues, setInitialValues] = useState<InstitutionPayload>({
     name: '',
-    sub_district: '',
+    sub_district: session?.user?.role === 'admin_kecamatan' ? session.user.sub_district || '' : '',
     address: '',
     gudep_man: '',
     gudep_woman: '',
@@ -89,7 +91,7 @@ export default function InstitutionPage() {
 
     setInitialValues({
       name: '',
-      sub_district: '',
+      sub_district: session?.user?.role === 'admin_kecamatan' ? session.user.sub_district || '' : '',
       address: '',
       gudep_man: '',
       gudep_woman: '',
@@ -175,7 +177,7 @@ export default function InstitutionPage() {
   const setInitial = (item: InstitutionData) => {
     setInitialValues({
       name: item.name,
-      sub_district: item.sub_district,
+      sub_district: session?.user?.role === 'admin_kecamatan' ? session.user.sub_district || '' : '',
       address: item.address,
       gudep_man: item.gudep_man,
       gudep_woman: item.gudep_woman,
@@ -277,7 +279,7 @@ export default function InstitutionPage() {
           setEditingData(null);
           setInitialValues({
             name: '',
-            sub_district: '',
+            sub_district: session?.user?.role === 'admin_kecamatan' ? session.user.sub_district || '' : '',
             address: '',
             gudep_man: '',
             gudep_woman: '',

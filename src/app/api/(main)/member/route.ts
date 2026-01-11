@@ -37,9 +37,86 @@ export const GET = async (req: NextRequest) => {
       };
     }
 
-    const total_data = await Member.countDocuments(filter);
+    let total_data: number;
+    let dataRaw: any[];
 
-    const dataRaw = await Member.find(filter).skip(skip).limit(limit).populate({ path: 'institution_id', select: 'name' }).lean();
+    // Jika role admin_kecamatan, filter by sub_district dari institution
+    if (token.role === 'admin_kecamatan' && token.sub_district) {
+      // Menggunakan aggregation pipeline untuk filter berdasarkan sub_district institution
+      const pipeline = [
+        { $match: { is_delete: 0 } },
+        {
+          $lookup: {
+            from: 'institutions',
+            localField: 'institution_id',
+            foreignField: '_id',
+            as: 'institution',
+          },
+        },
+        { $unwind: { path: '$institution', preserveNullAndEmptyArrays: true } },
+        {
+          $match: {
+            'institution.sub_district': token.sub_district,
+            'institution.is_delete': 0,
+            $or: [{ name: { $regex: search, $options: 'i' } }, { phone: { $regex: search, $options: 'i' } }],
+          },
+        },
+      ];
+
+      // Count total
+      const countPipeline = [...pipeline, { $count: 'total' }];
+      const countResult = await Member.aggregate(countPipeline);
+      total_data = countResult[0]?.total || 0;
+
+      // Get data with pagination
+      const dataPipeline = [
+        ...pipeline,
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+            phone: 1,
+            institution_id: '$institution._id',
+            institution_name: '$institution.name',
+            member_number: 1,
+            parent_number: 1,
+            gender: 1,
+            birth_place: 1,
+            birth_date: 1,
+            religion: 1,
+            nationality: 1,
+            rt: 1,
+            rw: 1,
+            village: 1,
+            sub_district: 1,
+            district: 1,
+            province: 1,
+            talent: 1,
+            father_name: 1,
+            father_birth_place: 1,
+            father_birth_date: 1,
+            mother_name: 1,
+            mother_birth_place: 1,
+            mother_birth_date: 1,
+            parent_address: 1,
+            parent_phone: 1,
+            entry_date: 1,
+            entry_level: 1,
+            exit_date: 1,
+            exit_reason: 1,
+            is_delete: 1,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
+      ];
+      dataRaw = await Member.aggregate(dataPipeline);
+    } else {
+      total_data = await Member.countDocuments(filter);
+      dataRaw = await Member.find(filter).skip(skip).limit(limit).populate({ path: 'institution_id', select: 'name' }).lean();
+    }
 
     // Map institution_id to string and add institution_name
     const data = dataRaw.map((item: any) => {
@@ -85,6 +162,11 @@ export const POST = async (req: NextRequest) => {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     if (!token) {
       return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    // admin_kecamatan tidak boleh create member
+    if (token.role === 'admin_kecamatan') {
+      return new NextResponse(JSON.stringify({ message: 'Anda tidak memiliki akses untuk menambah data anggota.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
     }
 
     const user_id = token.id;

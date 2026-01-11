@@ -1,7 +1,8 @@
 import connect from '@/lib/db';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import Tku from '@/lib/modals/tku';
+import { getToken } from 'next-auth/jwt';
 
 export const GET = async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
   try {
@@ -72,8 +73,18 @@ export const GET = async (req: Request, { params }: { params: Promise<{ id: stri
   }
 };
 
-export const DELETE = async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
+export const DELETE = async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   try {
+    // Check authorization
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+    // admin_kecamatan tidak boleh delete TKU
+    if (token.role === 'admin_kecamatan') {
+      return new NextResponse(JSON.stringify({ message: 'Anda tidak memiliki akses untuk menghapus data TKU.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+    }
+
     const { id } = await params;
 
     if (!id || !Types.ObjectId.isValid(id)) {

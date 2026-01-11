@@ -3,7 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import axios from 'axios';
 
 const isLocalhost = process.env.NODE_ENV === 'development';
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -38,9 +38,11 @@ export const authOptions: NextAuthOptions = {
             role: responseData?.user?.role,
             institution_id: responseData?.user?.institution_id,
             institution_name: responseData?.user?.institution_name,
+            sub_district: responseData?.user?.sub_district,
 
             access_token: responseData?.access_token,
-            refresh_token: responseData?.refresh_token          };
+            refresh_token: responseData?.refresh_token,
+          };
         } catch (error) {
           console.error('Auth error:', error);
           return null;
@@ -60,6 +62,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.institution_id = typeof user.institution_id === 'string' ? user.institution_id : '';
         token.institution_name = user.institution_name;
+        token.sub_district = user.sub_district;
       }
 
       const now = Math.floor(Date.now() / 1000);
@@ -82,6 +85,7 @@ export const authOptions: NextAuthOptions = {
         role: token.role || '',
         institution_id: typeof token.institution_id === 'string' ? token.institution_id : String(token.institution_id || ''),
         institution_name: token.institution_name || '',
+        sub_district: token.sub_district || '',
       };
       session.access_token = token.access_token;
       session.refresh_token = token.refresh_token;

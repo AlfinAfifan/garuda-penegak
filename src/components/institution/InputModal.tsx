@@ -9,6 +9,7 @@ import * as Yup from 'yup';
 import { SearchableSelect } from '../ui/searchable-select';
 import { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
+import { useSession } from 'next-auth/react';
 
 const inputSchema = Yup.object().shape({
   name: Yup.string().required('Nama lembaga wajib diisi'),
@@ -33,6 +34,8 @@ interface InputModalProps {
 }
 
 export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }: InputModalProps) {
+  const { data: session } = useSession();
+
   const [paramsSubDistrict, setParamsSubDistrict] = useState({ search: '', page: 1, limit: 10 });
 
   const list_sub_districts = [
@@ -66,19 +69,23 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
                   <Input id="name" name="name" value={values.name} onChange={handleChange} onBlur={handleBlur} />
                   <ErrorMessage name="name" component="div" className="text-red-500 text-xs mt-1" />
                 </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="name">Kwaran</Label>
-                  <SearchableSelect
-                    value={values.sub_district ?? ''}
-                    options={list_sub_districts}
-                    placeholder="Pilih kwaran"
-                    searchValue={paramsSubDistrict.search}
-                    onValueChange={(value) => setFieldValue('sub_district', value)}
-                    onSearchChange={(value) => setParamsSubDistrict((prev) => ({ ...prev, search: value }))}
-                    className="w-full"
-                  />
-                  <ErrorMessage name="name" component="div" className="text-red-500 text-xs mt-1" />
-                </div>
+
+                {session?.user?.role !== 'admin_kecamatan' && (
+                  <div className="col-span-2 space-y-2">
+                    <Label htmlFor="name">Kwaran</Label>
+                    <SearchableSelect
+                      value={values.sub_district ?? ''}
+                      options={list_sub_districts}
+                      placeholder="Pilih kwaran"
+                      searchValue={paramsSubDistrict.search}
+                      onValueChange={(value) => setFieldValue('sub_district', value)}
+                      onSearchChange={(value) => setParamsSubDistrict((prev) => ({ ...prev, search: value }))}
+                      className="w-full"
+                    />
+                    <ErrorMessage name="name" component="div" className="text-red-500 text-xs mt-1" />
+                  </div>
+                )}
+
                 <div className="col-span-2 space-y-2">
                   <Label htmlFor="address">Alamat</Label>
                   <Textarea id="address" name="address" value={values.address} onChange={handleChange} onBlur={handleBlur} />

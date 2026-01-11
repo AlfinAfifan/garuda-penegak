@@ -11,6 +11,7 @@ export interface UserPayload {
   email: string;
   role: string;
   institution_id?: string;
+  sub_district?: string;
   password?: string;
 }
 

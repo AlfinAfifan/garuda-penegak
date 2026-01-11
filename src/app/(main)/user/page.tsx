@@ -33,6 +33,7 @@ export default function UserPage() {
     password: '',
     role: '',
     institution_id: '',
+    sub_district: '',
   });
 
   const { data, isPending } = useQuery({
@@ -122,6 +123,7 @@ export default function UserPage() {
       password: '',
       role: item.role,
       institution_id: item.institution_id,
+      sub_district: item.sub_district,
     });
   };
 
@@ -132,6 +134,7 @@ export default function UserPage() {
       password: '',
       role: '',
       institution_id: '',
+      sub_district: '',
     });
     setEditingData(null);
   };

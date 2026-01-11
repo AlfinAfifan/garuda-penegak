@@ -43,6 +43,11 @@ export const PATCH = async (req: NextRequest, { params }: { params: Promise<{ id
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    // admin_kecamatan tidak boleh update member
+    if (token.role === 'admin_kecamatan') {
+      return new NextResponse(JSON.stringify({ message: 'Anda tidak memiliki akses untuk mengubah data anggota.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+    }
+
     const user_id = token.id;
     const { id } = await params;
 
@@ -147,6 +152,11 @@ export const DELETE = async (req: NextRequest, { params }: { params: Promise<{ i
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     if (!token) {
       return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    // admin_kecamatan tidak boleh delete member
+    if (token.role === 'admin_kecamatan') {
+      return new NextResponse(JSON.stringify({ message: 'Anda tidak memiliki akses untuk menghapus data anggota.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
     }
 
     const user_id = token.id;

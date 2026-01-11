@@ -1,6 +1,7 @@
 import connect from '@/lib/db';
 import TypeTkk from '@/lib/modals/type_tkk';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
 export const GET = async (req: Request) => {
   try {
@@ -47,8 +48,18 @@ export const GET = async (req: Request) => {
   }
 };
 
-export const POST = async (req: Request) => {
+export const POST = async (req: NextRequest) => {
   try {
+    // Check authorization
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+    // admin_kecamatan tidak boleh create type-tkk
+    if (token.role === 'admin_kecamatan') {
+      return new NextResponse(JSON.stringify({ message: 'Anda tidak memiliki akses untuk menambah data Jenis TKK.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+    }
+
     await connect();
 
     const body = await req.json();

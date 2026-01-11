@@ -35,6 +35,31 @@ export async function GET(req: NextRequest) {
     // Filter member yang tidak terhapus
     { $match: { 'member.is_delete': 0 } },
 
+    // Lookup institution untuk filter admin_kecamatan by sub_district
+    {
+      $lookup: {
+        from: 'institutions',
+        localField: 'member.institution_id',
+        foreignField: '_id',
+        as: 'institution',
+      },
+    },
+    { $unwind: { path: '$institution', preserveNullAndEmptyArrays: true } },
+
+    // Filter institution yang tidak terhapus
+    { $match: { 'institution.is_delete': 0 } },
+
+    // Filter by sub_district untuk admin_kecamatan
+    ...(token && token.role === 'admin_kecamatan' && token.sub_district
+      ? [
+          {
+            $match: {
+              'institution.sub_district': token.sub_district,
+            },
+          },
+        ]
+      : []),
+
     ...(token && token.role === 'user' && token.institution_id
       ? [
           {
@@ -108,6 +133,12 @@ export const POST = async (req: NextRequest) => {
     if (!token) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
+
+    // admin_kecamatan tidak boleh create garuda
+    if (token.role === 'admin_kecamatan') {
+      return new NextResponse(JSON.stringify({ message: 'Anda tidak memiliki akses untuk menambah data Garuda.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+    }
+
     const user_id = token.id;
 
     await connect();

@@ -2,7 +2,6 @@ import connect from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import Institution from '@/lib/modals/institution';
 import ActivityLog from '@/lib/modals/logs';
-import User from '@/lib/modals/user';
 import { getToken } from 'next-auth/jwt';
 
 export const GET = async (request: NextRequest) => {
@@ -19,10 +18,18 @@ export const GET = async (request: NextRequest) => {
 
     await connect();
 
-    const total_data = await Institution.countDocuments({ is_delete: 0 });
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+
+    // Filter berdasarkan role
+    const baseFilter: any = { is_delete: 0 };
+    if (token && token.role === 'admin_kecamatan' && token.sub_district) {
+      baseFilter.sub_district = token.sub_district;
+    }
+
+    const total_data = await Institution.countDocuments(baseFilter);
 
     const data = await Institution.find({
-      $and: [{ is_delete: 0 }, { $or: [{ name: { $regex: search, $options: 'i' } }, { address: { $regex: search, $options: 'i' } }] }],
+      $and: [baseFilter, { $or: [{ name: { $regex: search, $options: 'i' } }, { address: { $regex: search, $options: 'i' } }] }],
     })
       .skip(skip)
       .limit(limit)

@@ -21,10 +21,13 @@ import { TkkData } from './types';
 import { useNavbarAction } from '../layout';
 import { getTypeTkk } from '@/services/type-tkk';
 import { utils, writeFile } from 'xlsx';
+import { useSession } from 'next-auth/react';
 
 export default function TKKPage() {
+  const { data: session } = useSession();
   const queryClient = useQueryClient();
   const { setButtonAction } = useNavbarAction();
+  const canWrite = session?.user?.role === 'super_admin' || session?.user?.role === 'admin' || session?.user?.role === 'user';
 
   const [modalOpen, setModalOpen] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -330,10 +333,12 @@ export default function TKKPage() {
   useEffect(() => {
     setButtonAction(
       <div className="flex items-center space-x-2">
-        <Button className="bg-primary-500 hover:bg-primary-600" onClick={() => setShowAddModal(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Tambah Data
-        </Button>
+        {canWrite && (
+          <Button className="bg-primary-500 hover:bg-primary-600" onClick={() => setShowAddModal(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Tambah Data
+          </Button>
+        )}
 
         <Button className="bg-green-600 hover:bg-green-700" onClick={handleExport}>
           <FolderDown className="w-4 h-4 mr-2" />
@@ -342,7 +347,7 @@ export default function TKKPage() {
       </div>
     );
     return () => setButtonAction(undefined);
-  }, [setButtonAction]);
+  }, [setButtonAction, canWrite]);
 
   // Columns per tab
   const columnsPurwa: ColumnDef<TkkData>[] = [
@@ -381,16 +386,17 @@ export default function TKKPage() {
     {
       header: 'Actions',
       accessor: 'id',
-      cell: (item) => (
-        <div className="flex gap-4 items-center">
-          <Button disabled={item.madya} onClick={() => handleUpdate(item)} size="icon" className="size-8 bg-blue-50 hover:bg-blue-100 text-blue-600">
-            <CircleCheckBig className="h-4 w-4" />
-          </Button>
-          <Button disabled={item.madya} onClick={() => handleDelete(item)} size="icon" className="size-8 bg-red-50 hover:bg-red-100 text-red-600">
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
+      cell: (item) =>
+        canWrite && (
+          <div className="flex gap-4 items-center">
+            <Button disabled={item.madya} onClick={() => handleUpdate(item)} size="icon" className="size-8 bg-blue-50 hover:bg-blue-100 text-blue-600">
+              <CircleCheckBig className="h-4 w-4" />
+            </Button>
+            <Button disabled={item.madya} onClick={() => handleDelete(item)} size="icon" className="size-8 bg-red-50 hover:bg-red-100 text-red-600">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
     },
   ];
 
@@ -430,16 +436,17 @@ export default function TKKPage() {
     {
       header: 'Actions',
       accessor: 'id',
-      cell: (item) => (
-        <div className="flex gap-4 items-center">
-          <Button disabled={item.utama} onClick={() => handleUpdate(item)} size="icon" className="size-8 bg-blue-50 hover:bg-blue-100 text-blue-600">
-            <CircleCheckBig className="h-4 w-4" />
-          </Button>
-          <Button disabled={item.utama} onClick={() => handleDelete(item)} size="icon" className="size-8 bg-red-50 hover:bg-red-100 text-red-600">
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
+      cell: (item) =>
+        canWrite && (
+          <div className="flex gap-4 items-center">
+            <Button disabled={item.utama} onClick={() => handleUpdate(item)} size="icon" className="size-8 bg-blue-50 hover:bg-blue-100 text-blue-600">
+              <CircleCheckBig className="h-4 w-4" />
+            </Button>
+            <Button disabled={item.utama} onClick={() => handleDelete(item)} size="icon" className="size-8 bg-red-50 hover:bg-red-100 text-red-600">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
     },
   ];
 
@@ -479,13 +486,14 @@ export default function TKKPage() {
     {
       header: 'Actions',
       accessor: 'id',
-      cell: (item) => (
-        <div className="flex gap-4 items-center">
-          <Button onClick={() => handleDelete(item)} size="icon" className="size-8 bg-red-50 hover:bg-red-100 text-red-600">
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
+      cell: (item) =>
+        canWrite && (
+          <div className="flex gap-4 items-center">
+            <Button onClick={() => handleDelete(item)} size="icon" className="size-8 bg-red-50 hover:bg-red-100 text-red-600">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
     },
   ];
   return (
@@ -724,7 +732,7 @@ export default function TKKPage() {
                   description: 'Tambahkan data TKK Purwa anggota',
                   buttonText: 'Tambah TKK Purwa',
                   icon: Plus,
-                  onButtonClick: () => setShowAddModal(true),
+                  onButtonClick: session?.user?.role !== 'admin_kecamatan' ? () => setShowAddModal(true) : undefined,
                 }}
               />
               <CustomPagination

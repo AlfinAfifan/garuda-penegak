@@ -9,14 +9,20 @@ export const GET = async (req: NextRequest) => {
     await connect();
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     const institution_id = token?.institution_id;
+    const sub_district = token?.sub_district;
 
     // Build match stage
     let matchStage = {};
-    if (!(token && (token.role === 'super_admin' || token.role === 'admin'))) {
+    let subDistrictMatch = {};
+
+    if (!(token && (token.role === 'super_admin' || token.role === 'admin' || token.role === 'admin_kecamatan'))) {
       if (!institution_id) {
         return new NextResponse('institution_id is required', { status: 400 });
       }
       matchStage = { institution_id: new Types.ObjectId(institution_id) };
+    } else if (token.role === 'admin_kecamatan' && sub_district) {
+      // Untuk admin_kecamatan, filter berdasarkan sub_district
+      subDistrictMatch = { 'institution.sub_district': sub_district };
     }
 
     const pipeline = [
@@ -33,7 +39,12 @@ export const GET = async (req: NextRequest) => {
       },
       { $unwind: { path: '$institution', preserveNullAndEmptyArrays: true } },
       // Filter institution yang tidak terhapus
-      { $match: { 'institution.is_delete': 0 } },
+      {
+        $match: {
+          'institution.is_delete': 0,
+          ...(Object.keys(subDistrictMatch).length > 0 ? subDistrictMatch : {}),
+        },
+      },
       {
         $project: {
           _id: 1,

@@ -17,12 +17,16 @@ const userSchema = new Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin', 'super_admin'],
+      enum: ['user', 'admin', 'admin_kecamatan', 'super_admin'],
       default: 'user',
     },
     institution_id: {
       type: Schema.Types.ObjectId,
       ref: 'Institution',
+      default: null,
+    },
+    sub_district: {
+      type: String,
       default: null,
     },
     access_token: {

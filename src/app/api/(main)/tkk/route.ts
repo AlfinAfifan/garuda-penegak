@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Tkk from '@/lib/modals/tkk';
 import { getToken } from 'next-auth/jwt';
 import Member from '@/lib/modals/member';
+import Institution from '@/lib/modals/institution';
 import { Types } from 'mongoose';
 
 export const GET = async (req: NextRequest) => {
@@ -29,6 +30,23 @@ export const GET = async (req: NextRequest) => {
       }
 
       // Filter berdasarkan member_id yang ada di institution tersebut
+      baseFilter = { member_id: { $in: memberIds }, is_delete: 0 };
+    } else if (token && token.role === 'admin_kecamatan' && token.sub_district) {
+      // Untuk admin_kecamatan, filter berdasarkan sub_district
+      const institutions = await Institution.find({ sub_district: token.sub_district, is_delete: 0 }, { _id: 1 });
+      const institutionIds = institutions.map((inst) => inst._id);
+
+      const members = await Member.find({ institution_id: { $in: institutionIds }, is_delete: 0 }, { _id: 1 });
+      const memberIds = members.map((member) => member._id);
+
+      if (memberIds.length === 0) {
+        return NextResponse.json({
+          total_purwa: 0,
+          total_madya: 0,
+          total_utama: 0,
+        });
+      }
+
       baseFilter = { member_id: { $in: memberIds }, is_delete: 0 };
     } else {
       baseFilter = { is_delete: 0 };
