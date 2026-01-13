@@ -31,7 +31,7 @@ export default function RegisterPage() {
         </div>
       </div>
       <div className="bg-muted relative hidden lg:block">
-        <Image src="/image/register-illustration.jpg" width={100} height={100} alt="Image" className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale" />
+        <Image src="/image/register-illustration.png" fill alt="Image" className="object-cover dark:brightness-[0.2] dark:grayscale" />
       </div>
     </div>
   );
