@@ -252,7 +252,7 @@ function Navbar({ buttonAction, onMenuClick }: NavbarProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="relative uppercase font-semibold bg-white hover:bg-gray-50 text-primary-500 shadow">
-              {session?.user?.role === 'admin' ? session?.user?.institution_name : session?.user?.name}
+              {session?.user?.role === 'user' ? session?.user?.institution_name : session?.user?.name}
               <ChevronDown className="w-4 h-4 ml-2" />
             </Button>
           </DropdownMenuTrigger>

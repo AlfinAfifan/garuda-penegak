@@ -10,7 +10,7 @@ export interface UserPayload {
   name: string;
   email: string;
   role: string;
-  institution_id?: string;
+  institution_id?: string | null;
   sub_district?: string;
   password?: string;
 }

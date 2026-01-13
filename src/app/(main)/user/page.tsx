@@ -75,13 +75,13 @@ export default function UserPage() {
 
   const handleSubmit = async (data: UserData) => {
     if (editingData) {
-      await toast.promise(updateData.mutateAsync({ id: editingData._id, data }), {
+      await toast.promise(updateData.mutateAsync({ id: editingData._id, data: {...data, institution_id: data.institution_id || null} }), {
         loading: 'Mengirim permintaan...',
         success: 'Data berhasil disimpan!',
         error: (err) => `Gagal menyimpan request: ${err.message}`,
       });
     } else {
-      await toast.promise(createData.mutateAsync(data), {
+      await toast.promise(createData.mutateAsync({...data, institution_id: data.institution_id || null}), {
         loading: 'Mengirim permintaan...',
         success: 'Data berhasil disimpan!',
         error: (err) => `Gagal menyimpan request: ${err.message}`,
