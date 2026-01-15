@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
+import toast from 'react-hot-toast';
 
 type LoginFormValues = {
   email: string;
@@ -32,21 +33,25 @@ export default function LoginPage() {
   const handleSubmit = async (values: LoginFormValues) => {
     try {
       setIsLoading(true);
-      const success = await signIn('credentials', {
+      const response = await signIn('credentials', {
         redirect: false,
         email: values.email,
         password: values.password,
       });
 
-      if (success) {
+      if (response?.status === 401) {
+        toast.error('Email atau password salah');
+      } else if (response) {
         router.push('/dashboard');
       }
     } catch (error) {
       console.error('Login failed:', error);
+      toast.error('Login gagal. Silakan coba lagi!');
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-primary-50 flex items-center justify-center p-4">

@@ -29,7 +29,7 @@ export const POST = async (req: Request) => {
     const hashedPassword = await hash(password, 10);
 
     // Create a new user
-    const newUser = new User({ name, email, password: hashedPassword, institution_id, status: 0 });
+    const newUser = new User({ name, email, password: hashedPassword, institution_id, status: 1 });
     await newUser.save();
 
     // Return the created user without password
