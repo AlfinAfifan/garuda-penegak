@@ -177,6 +177,11 @@ export const POST = async (req: NextRequest) => {
       return new NextResponse('Member already has Laksana data', { status: 400 });
     }
 
+    const existingLaksana = await Tku.findOne({ member_id: existingData.member_id, laksana: true, is_delete: 0 });
+    if (existingLaksana) {
+      return new NextResponse('Member sudah memiliki data TKU Laksana', { status: 400 });
+    }
+
     // Validasi jarak minimal 100 hari antara date_bantara dan tanggal input laksana menggunakan moment.js
     const now = moment();
     const dateBantara = existingData.date_bantara ? moment(existingData.date_bantara) : null;

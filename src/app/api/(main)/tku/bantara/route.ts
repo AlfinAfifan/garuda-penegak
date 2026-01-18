@@ -170,6 +170,11 @@ export const POST = async (req: NextRequest) => {
       return new NextResponse('Institution not found', { status: 404 });
     }
 
+    const existingTku = await Tku.findOne({ member_id, bantara: true, is_delete: 0 });
+    if (existingTku) {
+      return new NextResponse('Member sudah memiliki data TKU Bantara', { status: 400 });
+    }
+
     // Ambil nomor urut SK
     const lastTku = await Tku.findOne({}, {}, { sort: { createdAt: -1 } });
     let nomorUrut = 1;
