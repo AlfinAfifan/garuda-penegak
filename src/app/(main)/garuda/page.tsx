@@ -21,9 +21,8 @@ export default function GarudaPage() {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const { setButtonAction } = useNavbarAction();
-  const isSuperAdmin = session?.user?.role === 'super_admin';
-  const canWrite = session?.user?.role === 'super_admin' || session?.user?.role === 'admin' || session?.user?.role === 'user';
   const isAdminKecamatan = session?.user?.role === 'admin_kecamatan';
+  const isUser = session?.user?.role === 'user';
 
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
@@ -121,41 +120,43 @@ export default function GarudaPage() {
   };
 
   useEffect(() => {
-    setButtonAction(
-      canWrite ? (
-        <Button className="bg-primary-500 hover:bg-primary-600" onClick={() => setModalOpen(true)}>
+    // admin_kecamatan hanya bisa view, tidak bisa tambah garuda
+    if (!isAdminKecamatan) {
+      setButtonAction(
+        <Button className="bg-primary-600 hover:bg-primary-700" onClick={() => setModalOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Tambah Garuda
-        </Button>
-      ) : undefined
-    );
+        </Button>,
+      );
+    }
     return () => setButtonAction(undefined);
-  }, [setButtonAction, canWrite]);
+  }, [setButtonAction, isAdminKecamatan]);
 
   const columns: ColumnDef<GarudaData>[] = [
     { header: 'Anggota', accessor: 'member_id.name' },
     { header: 'NTA', accessor: 'member_id.nta' },
     { header: 'Level TKU', accessor: 'level_tku' },
-    { header: 'Total Purwa', accessor: 'total_purwa' },
-    { header: 'Total Madya', accessor: 'total_madya' },
-    { header: 'Total Utama', accessor: 'total_utama' },
+    { header: 'Total TKK', accessor: 'total_tkk' },
     { header: 'Status', accessor: 'status', cell: (item) => getStatusBadge(item.status) },
     {
       header: 'Actions',
       accessor: 'id',
       cell: (item) => (
         <div className="flex items-center space-x-2">
-          {isSuperAdmin && (
-            <Button disabled={item.status !== 0} onClick={() => handleUpdateStatus(item)} size="icon" className="size-8 bg-blue-50 hover:bg-blue-100 text-blue-600">
-              <CircleCheckBig className="h-4 w-4" />
-            </Button>
-          )}
+          {/* admin_kecamatan tidak bisa approve atau delete */}
+          <>
+            {!isUser && (
+              <Button disabled={item.status !== 0} onClick={() => handleUpdateStatus(item)} size="icon" className="size-8 bg-blue-50 hover:bg-blue-100 text-blue-600">
+                <CircleCheckBig className="h-4 w-4" />
+              </Button>
+            )}
 
-          {canWrite && (
-            <Button disabled={item.status !== 0} onClick={() => handleDelete(item)} size="icon" className="size-8 bg-red-50 hover:bg-red-100 text-red-600">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
+            {!isAdminKecamatan && (
+              <Button disabled={item.status !== 0} onClick={() => handleDelete(item)} size="icon" className="size-8 bg-red-50 hover:bg-red-100 text-red-600">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </>
         </div>
       ),
     },
@@ -172,7 +173,7 @@ export default function GarudaPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{isPendingSummary ? '-' : summary?.total_garuda ?? 0}</div>
+            <div className="text-2xl font-bold text-gray-900">{isPendingSummary ? '-' : (summary?.total_garuda ?? 0)}</div>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-primary-600">
@@ -183,7 +184,7 @@ export default function GarudaPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{isPendingSummary ? '-' : summary?.total_approved ?? 0}</div>
+            <div className="text-2xl font-bold text-gray-900">{isPendingSummary ? '-' : (summary?.total_approved ?? 0)}</div>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-primary-600">
@@ -194,7 +195,7 @@ export default function GarudaPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{isPendingSummary ? '-' : summary?.total_pending ?? 0}</div>
+            <div className="text-2xl font-bold text-gray-900">{isPendingSummary ? '-' : (summary?.total_pending ?? 0)}</div>
           </CardContent>
         </Card>
       </div>
@@ -225,7 +226,7 @@ export default function GarudaPage() {
               description: 'Tambahkan data garuda untuk mengakses sistem',
               buttonText: 'Tambah Garuda',
               icon: Plus,
-              onButtonClick:session?.user?.role !== 'admin_kecamatan' ? () => setModalOpen(true) : undefined,
+              onButtonClick: session?.user?.role !== 'admin_kecamatan' ? () => setModalOpen(true) : undefined,
             }}
           />
           <CustomPagination

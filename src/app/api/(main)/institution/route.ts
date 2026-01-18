@@ -6,34 +6,56 @@ import { getToken } from 'next-auth/jwt';
 
 export const GET = async (request: NextRequest) => {
   try {
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '10', 10);
     const skip = (page - 1) * limit;
 
-    if (page < 1 || limit < 1) {
+    if (page < -1 || (page < 1 && page !== -1) || limit < 1) {
       return new NextResponse('Invalid page or limit', { status: 400 });
     }
 
     await connect();
 
-    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    // Build filter based on role
+    let baseFilter: any = {
+      $and: [{ is_delete: 0 }, { $or: [{ name: { $regex: search, $options: 'i' } }, { address: { $regex: search, $options: 'i' } }] }],
+    };
 
-    // Filter berdasarkan role
-    const baseFilter: any = { is_delete: 0 };
+    // Filter untuk admin_kecamatan: hanya tampilkan lembaga dengan sub_district yang sama
     if (token && token.role === 'admin_kecamatan' && token.sub_district) {
-      baseFilter.sub_district = token.sub_district;
+      baseFilter = {
+        $and: [{ is_delete: 0 }, { sub_district: token.sub_district }, { $or: [{ name: { $regex: search, $options: 'i' } }, { address: { $regex: search, $options: 'i' } }] }],
+      };
     }
 
     const total_data = await Institution.countDocuments(baseFilter);
 
-    const data = await Institution.find({
-      $and: [baseFilter, { $or: [{ name: { $regex: search, $options: 'i' } }, { address: { $regex: search, $options: 'i' } }] }],
-    })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    // Jika page = -1, return semua data tanpa pagination
+    if (page === -1) {
+      const data = await Institution.find(baseFilter).lean();
+
+      return new NextResponse(
+        JSON.stringify({
+          data,
+          pagination: {
+            total_data,
+            page: -1,
+            limit: total_data,
+            total_pages: 1,
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
+    const data = await Institution.find(baseFilter).skip(skip).limit(limit).lean();
 
     return new NextResponse(
       JSON.stringify({
@@ -48,14 +70,13 @@ export const GET = async (request: NextRequest) => {
       {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-      }
+      },
     );
   } catch (error) {
     console.error('Error fetching data:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 };
-
 export const POST = async (req: NextRequest) => {
   try {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });

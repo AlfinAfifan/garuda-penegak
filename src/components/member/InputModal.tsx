@@ -17,32 +17,31 @@ import { useSession } from 'next-auth/react';
 const inputSchema = Yup.object().shape({
   name: Yup.string().required('Nama wajib diisi'),
   phone: Yup.string().required('No Telp wajib diisi'),
-  institution_id: Yup.string().nullable(),
+  institution_id: Yup.string().nullable().required('Lembaga wajib dipilih'),
   member_number: Yup.string().required('NTA wajib diisi'),
-  parent_number: Yup.string().required('No Induk wajib diisi'),
   gender: Yup.string().required('Jenis kelamin wajib diisi'),
   birth_place: Yup.string().required('Tempat lahir wajib diisi'),
   birth_date: Yup.date().nullable().required('Tanggal lahir wajib diisi'),
   religion: Yup.string().required('Agama wajib diisi'),
-  nationality: Yup.string(),
-  rt: Yup.string(),
-  rw: Yup.string(),
-  village: Yup.string(),
-  sub_district: Yup.string(),
-  district: Yup.string(),
-  province: Yup.string(),
+  nationality: Yup.string().required('Kewarganegaraan wajib diisi'),
+  rt: Yup.string().required('RT wajib diisi'),
+  rw: Yup.string().required('RW wajib diisi'),
+  village: Yup.string().required('Desa/Kelurahan wajib diisi'),
+  sub_district: Yup.string().required('Kecamatan wajib diisi'),
+  district: Yup.string().required('Kabupaten wajib diisi'),
+  province: Yup.string().required('Provinsi wajib diisi'),
   talent: Yup.string(),
-  father_name: Yup.string(),
+  father_name: Yup.string().required('Nama ayah wajib diisi'),
   father_birth_place: Yup.string(),
   father_birth_date: Yup.date().nullable(),
-  mother_name: Yup.string(),
+  mother_name: Yup.string().required('Nama ibu wajib diisi'),
   mother_birth_place: Yup.string(),
   mother_birth_date: Yup.date().nullable(),
   parent_address: Yup.string(),
   parent_phone: Yup.string(),
-  entry_date: Yup.date().nullable(),
+  entry_date: Yup.date().required('Tanggal masuk wajib diisi'),
   exit_date: Yup.date().nullable(),
-  entry_level: Yup.string(),
+  entry_level: Yup.string().required('Tingkat masuk wajib diisi'),
   exit_reason: Yup.string(),
 });
 
@@ -58,7 +57,8 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
   const [paramsInstitution, setParamsInstitution] = useState({ search: '', page: 1, limit: 10 });
   const { data: session } = useSession();
   const isSuperAdmin = session?.user?.role === 'super_admin';
-
+  const isAdminKecamatan = session?.user?.role === 'admin_kecamatan';
+  const isUser = session?.user?.role === 'user';
   const { data: dataInstitution, isPending: isPendingInstitution } = useQuery({
     queryKey: ['institutions', paramsInstitution],
     queryFn: () => getInstitution(paramsInstitution),
@@ -76,7 +76,7 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
   const defaultValues = {
     name: '',
     phone: '',
-    institution_id: initialValues?.institution_id || (session?.user?.role !== 'super_admin' ? session?.user?.institution_id : null),
+    institution_id: initialValues?.institution_id,
     member_number: '',
     parent_number: '',
     gender: '',
@@ -106,6 +106,8 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
     ...initialValues,
   };
 
+  useEffect(() => {console.log(defaultValues);}, [defaultValues]);
+
   // Component untuk field input yang konsisten
   const InputField = ({ label, name, type = 'text', className = '', values, handleChange, handleBlur, setFieldValue, placeholder, isTextarea = false }: any) => (
     <div className={`space-y-1 ${className}`}>
@@ -121,6 +123,7 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
           onBlur={handleBlur}
           placeholder={placeholder}
           className="w-full min-h-[60px] rounded-md border border-gray-200 px-3 py-2 text-sm focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+          disabled={isAdminKecamatan && name !== 'institution_id'}
         />
       ) : (
         <Input
@@ -132,6 +135,7 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
           onBlur={handleBlur}
           placeholder={placeholder}
           className="border-gray-200"
+          disabled={isAdminKecamatan && name !== 'institution_id'}
         />
       )}
       <ErrorMessage name={name} component="div" className="text-red-500 text-xs mt-1" />
@@ -144,8 +148,8 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
       <Label htmlFor={name} className="text-sm font-medium text-gray-600">
         {label}
       </Label>
-      <Select value={values[name] || ''} onValueChange={(value) => setFieldValue(name, value)}>
-        <SelectTrigger className="w-full border-gray-200">
+      <Select value={values[name] || ''} onValueChange={(value) => setFieldValue(name, value)} disabled={isAdminKecamatan && name !== 'institution_id'}>
+        <SelectTrigger className="w-full border-gray-200" disabled={isAdminKecamatan && name !== 'institution_id'}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
@@ -192,20 +196,31 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       <InputField label="Nama" name="name" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Masukkan nama lengkap" />
                       <InputField label="NTA" name="member_number" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Nomor Tanda Anggota" />
-                      <SelectField
-                        label="Jenis Kelamin"
-                        name="gender"
-                        options={[
-                          { value: 'Laki-laki', label: 'Laki-laki' },
-                          { value: 'Perempuan', label: 'Perempuan' },
-                        ]}
-                        values={values}
-                        setFieldValue={setFieldValue}
-                        placeholder="Pilih jenis kelamin"
-                      />
-                      <InputField label="Tempat Lahir" name="birth_place" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Kota/Kabupaten lahir" />
-                      <InputField label="Tanggal Lahir" name="birth_date" type="date" values={values} handleChange={handleChange} handleBlur={handleBlur} />
-                      <InputField label="Agama" name="religion" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Agama" />
+                      <InputField label="No Induk" name="parent_number" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Nomor Induk Siswa" />
+
+                      <div className="flex flex-col md:flex-row gap-4 md:col-span-2 lg:col-span-3">
+                        <InputField className="flex-1" label="Tempat Lahir" name="birth_place" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Kota/Kabupaten lahir" />
+                        <InputField className="flex-1" label="Tanggal Lahir" name="birth_date" type="date" values={values} handleChange={handleChange} handleBlur={handleBlur} />
+                      </div>
+
+                      <div className="flex flex-col md:flex-row gap-4 md:col-span-2 lg:col-span-3">
+                        <SelectField
+                          className="flex-1"
+                          label="Jenis Kelamin"
+                          name="gender"
+                          options={[
+                            { value: 'Laki-laki', label: 'Laki-laki' },
+                            { value: 'Perempuan', label: 'Perempuan' },
+                          ]}
+                          values={values}
+                          setFieldValue={setFieldValue}
+                          placeholder="Pilih jenis kelamin"
+                        />
+                        <InputField className="flex-1" label="Agama" name="religion" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Agama" />
+                      </div>
+
+                      <InputField label="No Telp" name="phone" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Nomor telepon/HP" />
+                      <InputField label="Bakat" name="talent" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Bakat khusus" />
                       <SelectField
                         label="Kewarganegaraan"
                         name="nationality"
@@ -217,8 +232,6 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
                         setFieldValue={setFieldValue}
                         placeholder="Pilih kewarganegaraan"
                       />
-                      <InputField label="No Telp" name="phone" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Nomor telepon/HP" />
-                      <InputField label="Bakat" name="talent" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Bakat khusus" />
 
                       {/* Alamat - Full Width */}
                       <div className="md:col-span-2 lg:col-span-3 space-y-1">
@@ -246,14 +259,13 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
                       Data Orang Tua
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <InputField label="No Induk Orang Tua" name="parent_number" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Nomor induk orang tua" />
                       <InputField label="Nama Ayah" name="father_name" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Nama lengkap ayah" />
                       <InputField label="Tempat Lahir Ayah" name="father_birth_place" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Tempat lahir ayah" />
                       <InputField label="Tanggal Lahir Ayah" name="father_birth_date" type="date" values={values} handleChange={handleChange} handleBlur={handleBlur} />
                       <InputField label="Nama Ibu" name="mother_name" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Nama lengkap ibu" />
                       <InputField label="Tempat Lahir Ibu" name="mother_birth_place" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Tempat lahir ibu" />
                       <InputField label="Tanggal Lahir Ibu" name="mother_birth_date" type="date" values={values} handleChange={handleChange} handleBlur={handleBlur} />
-                      <InputField label="No Telp Orang Tua" name="parent_phone" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Nomor telepon orang tua" />
+                      <InputField className="md:col-span-2 lg:col-span-3" label="No Telp Orang Tua" name="parent_phone" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Nomor telepon orang tua" />
                       <InputField
                         label="Alamat Orang Tua"
                         name="parent_address"
@@ -278,7 +290,7 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
                       Data Keanggotaan
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {isSuperAdmin && (
+                      {!isUser && (
                         <div className="space-y-1 md:col-span-2 lg:col-span-3">
                           <Label className="text-sm font-medium text-gray-600">Lembaga</Label>
                           <SearchableSelect
@@ -290,6 +302,7 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
                             onValueChange={(value) => setFieldValue('institution_id', value)}
                             onSearchChange={(value) => setParamsInstitution((prev) => ({ ...prev, search: value }))}
                             className="w-full border-gray-200"
+                            disabled={false}
                           />
                           <ErrorMessage name="institution_id" component="div" className="text-red-500 text-xs mt-1" />
                         </div>
@@ -316,7 +329,7 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
                 <Button type="button" variant="outline" onClick={onClose} disabled={isLoading} className="min-w-24">
                   Batal
                 </Button>
-                <Button type="submit" className="bg-primary-500 hover:bg-primary-600 text-white min-w-24" disabled={isLoading}>
+                <Button type="submit" className="bg-primary-600 hover:bg-primary-700 text-white min-w-24" disabled={isLoading}>
                   {isLoading ? 'Menyimpan...' : 'Simpan'}
                 </Button>
               </DialogFooter>

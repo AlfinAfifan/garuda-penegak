@@ -21,7 +21,7 @@ export function RegisterForm({ className, ...props }: React.ComponentProps<'form
   const router = useRouter();
 
   const [showPassword, setShowPassword] = useState(false);
-  const [paramsInstitution, setParamsInstitution] = useState({ search: '', page: 1, limit: 10 });
+  const [paramsInstitution, setParamsInstitution] = useState({ search: '', page: -1, limit: 10 });
 
   const { data: dataInstitution, isPending: isPendingInstitution } = useQuery({
     queryKey: ['institutions', paramsInstitution],
