@@ -106,7 +106,9 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
     ...initialValues,
   };
 
-  useEffect(() => {console.log(defaultValues);}, [defaultValues]);
+  useEffect(() => {
+    console.log(defaultValues);
+  }, [defaultValues]);
 
   // Component untuk field input yang konsisten
   const InputField = ({ label, name, type = 'text', className = '', values, handleChange, handleBlur, setFieldValue, placeholder, isTextarea = false }: any) => (
@@ -219,7 +221,7 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
                         <InputField className="flex-1" label="Agama" name="religion" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Agama" />
                       </div>
 
-                      <InputField label="No Telp" name="phone" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Nomor telepon/HP" />
+                      <InputField label="No Telp" name="phone" type="number" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Nomor telepon/HP" />
                       <InputField label="Bakat" name="talent" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Bakat khusus" />
                       <SelectField
                         label="Kewarganegaraan"
@@ -265,7 +267,16 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
                       <InputField label="Nama Ibu" name="mother_name" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Nama lengkap ibu" />
                       <InputField label="Tempat Lahir Ibu" name="mother_birth_place" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Tempat lahir ibu" />
                       <InputField label="Tanggal Lahir Ibu" name="mother_birth_date" type="date" values={values} handleChange={handleChange} handleBlur={handleBlur} />
-                      <InputField className="md:col-span-2 lg:col-span-3" label="No Telp Orang Tua" name="parent_phone" values={values} handleChange={handleChange} handleBlur={handleBlur} placeholder="Nomor telepon orang tua" />
+                      <InputField
+                        className="md:col-span-2 lg:col-span-3"
+                        label="No Telp Orang Tua"
+                        type="number"
+                        name="parent_phone"
+                        values={values}
+                        handleChange={handleChange}
+                        handleBlur={handleBlur}
+                        placeholder="Nomor telepon orang tua"
+                      />
                       <InputField
                         label="Alamat Orang Tua"
                         name="parent_address"

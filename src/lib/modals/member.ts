@@ -9,7 +9,6 @@ const memberSchema = new Schema(
     phone: {
       type: String,
       required: true,
-      unique: true,
     },
     institution_id: {
       type: Schema.Types.ObjectId,

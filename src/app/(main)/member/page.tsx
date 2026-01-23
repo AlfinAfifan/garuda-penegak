@@ -425,7 +425,7 @@ export default function MemberPage() {
 
           <CustomPagination
             currentPage={params.page}
-            totalPages={data?.pagination?.total_page || 0}
+            totalPages={data?.pagination?.total_pages || 0}
             onPageChange={(page) => setParams((prev) => ({ ...prev, page }))}
             itemsPerPage={params.limit}
             onItemsPerPageChange={(limit) => setParams((prev) => ({ ...prev, limit, page: 1 }))}
