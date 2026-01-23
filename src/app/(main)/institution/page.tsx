@@ -209,11 +209,9 @@ export default function InstitutionPage() {
 
   const columns: ColumnDef<InstitutionData>[] = [
     { header: 'Nama Lembaga', accessor: 'name' },
-    { header: 'Alamat', accessor: 'address' },
     { header: 'No Gudep LK', accessor: 'gudep_man' },
     { header: 'No Gudep PR', accessor: 'gudep_woman' },
     { header: 'Kepsek', accessor: 'headmaster_name' },
-    { header: 'NIP Kepsek', accessor: 'headmaster_number' },
     {
       header: 'Actions',
       accessor: 'id',
