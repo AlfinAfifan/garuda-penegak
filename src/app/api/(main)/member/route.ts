@@ -37,94 +37,37 @@ export const GET = async (req: NextRequest) => {
       };
     }
 
-    let total_data: number;
+    const total_data = await Member.countDocuments(filter);
+
     let dataRaw: any[];
 
-    // Jika role admin_kecamatan, filter by sub_district dari institution
+    // Untuk admin_kecamatan, perlu join dengan institution dan filter berdasarkan sub_district
     if (token.role === 'admin_kecamatan' && token.sub_district) {
-      // Menggunakan aggregation pipeline untuk filter berdasarkan sub_district institution
-      const pipeline = [
-        { $match: { is_delete: 0 } },
-        {
-          $lookup: {
-            from: 'institutions',
-            localField: 'institution_id',
-            foreignField: '_id',
-            as: 'institution',
-          },
-        },
-        { $unwind: { path: '$institution', preserveNullAndEmptyArrays: true } },
-        {
-          $match: {
-            'institution.sub_district': token.sub_district,
-            'institution.is_delete': 0,
-            $or: [{ name: { $regex: search, $options: 'i' } }, { phone: { $regex: search, $options: 'i' } }],
-          },
-        },
-      ];
+      dataRaw = await Member.find(filter)
+        .skip(skip)
+        .limit(limit)
+        .populate({
+          path: 'institution_id',
+          select: 'name sub_district',
+          match: { sub_district: token.sub_district, is_delete: 0 },
+        })
+        .lean();
 
-      // Count total
-      const countPipeline = [...pipeline, { $count: 'total' }];
-      const countResult = await Member.aggregate(countPipeline);
-      total_data = countResult[0]?.total || 0;
-
-      // Get data with pagination
-      const dataPipeline = [
-        ...pipeline,
-        { $skip: skip },
-        { $limit: limit },
-        {
-          $project: {
-            _id: 1,
-            name: 1,
-            phone: 1,
-            institution_id: '$institution._id',
-            institution_name: '$institution.name',
-            member_number: 1,
-            parent_number: 1,
-            gender: 1,
-            birth_place: 1,
-            birth_date: 1,
-            religion: 1,
-            nationality: 1,
-            rt: 1,
-            rw: 1,
-            village: 1,
-            sub_district: 1,
-            district: 1,
-            province: 1,
-            talent: 1,
-            father_name: 1,
-            father_birth_place: 1,
-            father_birth_date: 1,
-            mother_name: 1,
-            mother_birth_place: 1,
-            mother_birth_date: 1,
-            parent_address: 1,
-            parent_phone: 1,
-            entry_date: 1,
-            entry_level: 1,
-            exit_date: 1,
-            exit_reason: 1,
-            is_delete: 1,
-            createdAt: 1,
-            updatedAt: 1,
-          },
-        },
-      ];
-      dataRaw = await Member.aggregate(dataPipeline);
+      // Filter out members yang institution_id null (tidak match dengan sub_district)
+      dataRaw = dataRaw.filter((item: any) => item.institution_id !== null);
     } else {
-      total_data = await Member.countDocuments(filter);
-      dataRaw = await Member.find(filter).skip(skip).limit(limit).populate({ path: 'institution_id', select: 'name' }).lean();
+      dataRaw = await Member.find(filter).skip(skip).limit(limit).populate({ path: 'institution_id', select: 'name sub_district' }).lean();
     }
 
     // Map institution_id to string and add institution_name
     const data = dataRaw.map((item: any) => {
       let institution_id = '';
       let institution_name = '';
+      let kwaran = '';
       if (item.institution_id && typeof item.institution_id === 'object') {
         institution_id = item.institution_id._id?.toString() || '';
         institution_name = item.institution_id.name || '';
+        kwaran = item.institution_id.sub_district || '';
       } else if (typeof item.institution_id === 'string') {
         institution_id = item.institution_id;
       }
@@ -132,6 +75,7 @@ export const GET = async (req: NextRequest) => {
         ...item,
         institution_id,
         institution_name,
+        kwaran,
       };
     });
 
@@ -149,7 +93,7 @@ export const GET = async (req: NextRequest) => {
       {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-      }
+      },
     );
   } catch (error) {
     console.error('Error fetching data:', error);

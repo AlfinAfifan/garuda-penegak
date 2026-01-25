@@ -16,6 +16,7 @@ export interface MemberData {
   rw: string;
   village: string;
   sub_district: string;
+  kwaran: string;
   district: string;
   province: string;
   talent_hobby: string;

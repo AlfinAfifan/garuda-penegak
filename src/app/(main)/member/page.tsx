@@ -334,24 +334,17 @@ export default function MemberPage() {
       accessor: 'name',
     },
     {
+      header: 'Kwaran',
+      accessor: 'kwaran',
+      cell: (item) => <div className="capitalize">{item.kwaran}</div>,
+    },
+    {
       header: 'Lembaga',
       accessor: 'institution_name',
     },
     {
-      header: 'NTA',
-      accessor: 'member_number',
-    },
-    {
       header: 'Jenis Kelamin',
       accessor: 'gender',
-    },
-    {
-      header: 'Tempat / Tanggal Lahir',
-      accessor: 'birth_date',
-      cell: (item) => {
-        const birthDate = moment(item.birth_date).format('DD/MM/YYYY');
-        return `${item.birth_place}, ${birthDate}`;
-      },
     },
     {
       header: 'Telp',
