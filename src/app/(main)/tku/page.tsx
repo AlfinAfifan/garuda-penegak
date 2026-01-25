@@ -449,7 +449,7 @@ export default function TKKPage() {
             className="space-y-4"
           >
             <div className="space-y-2">
-              <Label htmlFor="member_id">Pilih Anggota</Label>
+              <Label htmlFor="member_id">Pilih Anggota ({memberOptions?.pagination?.total_data ?? 0})</Label>
               <SearchableSelect
                 value={selectedMemberId ?? ''}
                 options={memberOptions?.data}
