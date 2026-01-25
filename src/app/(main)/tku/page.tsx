@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { UpdateConfirmation } from '@/components/ui/update-confirmation';
 import moment from 'moment';
-import { getMembers } from '@/services/member';
+import { getMembersWithoutTku } from '@/services/member';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useNavbarAction } from '../layout';
 import { utils, writeFile } from 'xlsx';
@@ -45,7 +45,7 @@ export default function TKKPage() {
 
   const { data: memberOptions, isPending: isPendingMember } = useQuery({
     queryKey: ['members', paramsMember],
-    queryFn: async () => getMembers(paramsMember),
+    queryFn: async () => getMembersWithoutTku(paramsMember),
   });
   const { data: summary, isPending: isPendingSummary } = useQuery({
     queryKey: ['tku-summary'],
@@ -78,6 +78,7 @@ export default function TKKPage() {
     mutationFn: createBantara,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tku-bantara'] });
+      queryClient.invalidateQueries({ queryKey: ['members'] });
       setModalOpen(false);
     },
   });
@@ -94,6 +95,7 @@ export default function TKKPage() {
     mutationFn: (id: string) => deleteBantara(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tku-bantara'] });
+      queryClient.invalidateQueries({ queryKey: ['members'] });
     },
   });
   const deleteDataLaksana = useMutation({
@@ -215,7 +217,7 @@ export default function TKKPage() {
           <FolderDown className="w-4 h-4 mr-2" />
           Excel
         </Button>
-      </div>
+      </div>,
     );
     return () => setButtonAction(undefined);
   }, [setButtonAction, canWrite]);
@@ -314,7 +316,7 @@ export default function TKKPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{isPendingSummary ? '-' : summary?.total_bantara ?? 0}</div>
+            <div className="text-2xl font-bold text-gray-900">{isPendingSummary ? '-' : (summary?.total_bantara ?? 0)}</div>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-primary-500">
@@ -325,7 +327,7 @@ export default function TKKPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{isPendingSummary ? '-' : summary?.total_laksana ?? 0}</div>
+            <div className="text-2xl font-bold text-gray-900">{isPendingSummary ? '-' : (summary?.total_laksana ?? 0)}</div>
           </CardContent>
         </Card>
       </div>

@@ -50,6 +50,18 @@ export const getMembers = async (params: MemberParams) => {
   }
 };
 
+export const getMembersWithoutTku = async (params: MemberParams) => {
+  try {
+    const response = await axiosInstance('/member/without_tku', {
+      params,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching members:', error);
+    throw error.response?.data;
+  }
+};
+
 export const getMemberById = async (id: string) => {
   try {
     const response = await axiosInstance(`/member/${id}`);
@@ -98,4 +110,4 @@ export const exportMembers = async () => {
     console.error('Error exporting members:', error);
     throw error.response?.data;
   }
-}
+};
