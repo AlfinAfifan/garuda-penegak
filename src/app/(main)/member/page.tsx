@@ -431,6 +431,7 @@ export default function MemberPage() {
         initialValues={initialValues}
         onClose={() => {
           setModalOpen(false);
+          setEditingData(null);
           setInitialValues({
             name: '',
             institution_id: '',
