@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Formik, Form, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { useQuery } from '@tanstack/react-query';
-import { getInstitution } from '@/services/instantion';
+import { getAllInstitution } from '@/services/instantion';
 import { useEffect, useState } from 'react';
 import { SearchableSelect } from '../ui/searchable-select';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -61,7 +61,7 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
   const isUser = session?.user?.role === 'user';
   const { data: dataInstitution, isPending: isPendingInstitution } = useQuery({
     queryKey: ['institutions', paramsInstitution],
-    queryFn: () => getInstitution(paramsInstitution),
+    queryFn: () => getAllInstitution(paramsInstitution),
     enabled: open,
   });
 

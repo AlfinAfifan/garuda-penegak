@@ -32,6 +32,18 @@ export const getInstitution = async (params: GetParams) => {
   }
 };
 
+export const getAllInstitution = async (params: GetParams) => {
+  try {
+    const response = await axiosInstance('/institution/all', {
+      params,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching institution:', error);
+    throw error.response?.data;
+  }
+};
+
 export const getInstitutionById = async (id: string) => {
   try {
     const response = await axiosInstance(`/institution/${id}`);
