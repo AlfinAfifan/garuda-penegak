@@ -18,7 +18,7 @@ export const GET = async (request: NextRequest) => {
     await connect();
 
     // Build filter based on role
-    let baseFilter: any = {
+    const baseFilter: any = {
       $and: [{ is_delete: 0 }, { $or: [{ name: { $regex: search, $options: 'i' } }, { address: { $regex: search, $options: 'i' } }] }],
     };
 
