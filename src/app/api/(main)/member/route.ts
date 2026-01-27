@@ -150,12 +150,6 @@ export const POST = async (req: NextRequest) => {
       exit_reason,
     } = body;
 
-    const data = await Member.findOne({ name });
-
-    if (data) {
-      return new NextResponse('Data already exists', { status: 400 });
-    }
-
     const newData = new Member({
       name,
       phone,

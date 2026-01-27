@@ -65,7 +65,7 @@ export const POST = async (req: NextRequest) => {
     const body = await req.json();
     const { name, sector, color } = body;
 
-    const data = await TypeTkk.findOne({ name });
+    const data = await TypeTkk.findOne({ name, is_delete: 0 });
 
     if (data) {
       return new NextResponse('Type TKK already exists', { status: 400 });
