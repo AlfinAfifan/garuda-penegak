@@ -105,10 +105,10 @@ export const PATCH = async (req: NextRequest, { params }: { params: Promise<{ id
         nationality,
         rt,
         rw,
-        village,
-        sub_district,
-        district,
-        province,
+        village: village?.toLowerCase(),
+        sub_district: sub_district?.toLowerCase(),
+        district: district?.toLowerCase(),
+        province: province?.toLowerCase(),
         talent,
         father_name,
         father_birth_place,
@@ -123,7 +123,7 @@ export const PATCH = async (req: NextRequest, { params }: { params: Promise<{ id
         exit_date,
         exit_reason,
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!updatedData) {
