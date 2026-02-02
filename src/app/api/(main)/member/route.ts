@@ -37,27 +37,70 @@ export const GET = async (req: NextRequest) => {
       };
     }
 
-    const total_data = await Member.countDocuments(filter);
-
     let dataRaw: any[];
 
-    // Untuk admin_kecamatan, perlu join dengan institution dan filter berdasarkan sub_district
+    // Untuk admin_kecamatan, perlu join dengan institution dan filter berdasarkan institution.sub_district
     if (token.role === 'admin_kecamatan' && token.sub_district) {
+      const Institution = (await import('@/lib/modals/institution')).default;
+
+      const institutions = await Institution.find({ sub_district: token.sub_district, is_delete: 0 }, '_id').lean();
+
+      const institutionIds = institutions.map((inst: any) => inst._id);
+
+      filter = {
+        $and: [{ institution_id: { $in: institutionIds } }, { is_delete: 0 }, { $or: [{ name: { $regex: search, $options: 'i' } }, { phone: { $regex: search, $options: 'i' } }] }],
+      };
+
+      const total_data = await Member.countDocuments(filter);
+
       dataRaw = await Member.find(filter)
         .skip(skip)
         .limit(limit)
         .populate({
           path: 'institution_id',
           select: 'name sub_district',
-          match: { sub_district: token.sub_district, is_delete: 0 },
         })
         .lean();
 
-      // Filter out members yang institution_id null (tidak match dengan sub_district)
-      dataRaw = dataRaw.filter((item: any) => item.institution_id !== null);
-    } else {
-      dataRaw = await Member.find(filter).skip(skip).limit(limit).populate({ path: 'institution_id', select: 'name sub_district' }).lean();
+      const data = dataRaw.map((item: any) => {
+        let institution_id = '';
+        let institution_name = '';
+        let kwaran = '';
+        if (item.institution_id && typeof item.institution_id === 'object') {
+          institution_id = item.institution_id._id?.toString() || '';
+          institution_name = item.institution_id.name || '';
+          kwaran = item.institution_id.sub_district || '';
+        } else if (typeof item.institution_id === 'string') {
+          institution_id = item.institution_id;
+        }
+        return {
+          ...item,
+          institution_id,
+          institution_name,
+          kwaran,
+        };
+      });
+
+      return new NextResponse(
+        JSON.stringify({
+          data,
+          pagination: {
+            total_data,
+            page,
+            limit,
+            total_pages: Math.ceil(total_data / limit),
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
     }
+
+    const total_data = await Member.countDocuments(filter);
+
+    dataRaw = await Member.find(filter).skip(skip).limit(limit).populate({ path: 'institution_id', select: 'name sub_district' }).lean();
 
     // Map institution_id to string and add institution_name
     const data = dataRaw.map((item: any) => {
