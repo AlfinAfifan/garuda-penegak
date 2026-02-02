@@ -50,7 +50,7 @@ export function DetailModal({ open, onClose, data }: DetailModalProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <DetailField label="Nama" value={data.name} />
                 <DetailField label="NTA" value={data.member_number} />
-                <DetailField label="Jenis Kelamin" value={data.gender === 'male' ? 'Laki-laki' : 'Perempuan'} />
+                <DetailField label="Jenis Kelamin" value={data.gender} />
                 <DetailField label="Tempat / Tanggal Lahir" value={`${data.birth_place}, ${data.birth_date ? moment(data.birth_date).format('DD/MM/YYYY') : '-'}`} />
                 <DetailField label="Agama" value={data.religion} />
                 <DetailField label="Kewarganegaraan" value={data.nationality} />
