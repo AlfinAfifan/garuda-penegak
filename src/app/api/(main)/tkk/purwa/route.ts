@@ -180,8 +180,8 @@ export const POST = async (req: NextRequest) => {
     const { member_id, type_tkk_id, examiner_name_purwa, examiner_position_purwa, examiner_address_purwa } = body;
 
     const dataTku = await Tku.findOne({ member_id, bantara: true }).populate({ path: 'member_id', populate: { path: 'institution_id' } });
-    if (!dataTku.laksana || !dataTku.bantara) {
-      return new NextResponse('Laksana and Bantara data must be completed before creating TKK', { status: 400 });
+    if (!dataTku.bantara) {
+      return new NextResponse('Bantara data must be completed before creating TKK', { status: 400 });
     }
 
     // Ambil nomor urut SK
