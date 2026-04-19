@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, LucideIcon, Loader2Icon } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ChevronUp, Loader2Icon, LucideIcon, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
@@ -31,6 +31,13 @@ interface DataTableProps<T> {
   tableProps?: any;
 }
 
+type SortDirection = 'asc' | 'desc';
+
+type SortState = {
+  accessor: string;
+  direction: SortDirection;
+} | null;
+
 export function DataTable<T>({
   columns,
   data,
@@ -44,6 +51,8 @@ export function DataTable<T>({
   isLoading = false,
   tableProps,
 }: DataTableProps<T>) {
+  const [sortState, setSortState] = React.useState<SortState>(null);
+
   const renderHeader = (column: ColumnDef<T>) => {
     if (typeof column.header === 'function') {
       return column.header(tableProps);
@@ -69,6 +78,93 @@ export function DataTable<T>({
     return (item as any)[accessor];
   };
 
+  const getSortableValue = React.useCallback(
+    (item: T, accessor: string) => {
+      const value = getCellValue(item, accessor);
+
+      if (value === null || value === undefined) {
+        return '';
+      }
+
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return value;
+      }
+
+      if (value instanceof Date) {
+        return value.getTime();
+      }
+
+      return String(value);
+    },
+    [columns],
+  );
+
+  const sortedData = React.useMemo(() => {
+    if (!sortState) {
+      return data;
+    }
+
+    const sorted = [...data].sort((a, b) => {
+      const aValue = getSortableValue(a, sortState.accessor);
+      const bValue = getSortableValue(b, sortState.accessor);
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortState.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+
+      const aString = String(aValue).toLowerCase();
+      const bString = String(bValue).toLowerCase();
+      const comparison = aString.localeCompare(bString, undefined, { numeric: true, sensitivity: 'base' });
+
+      return sortState.direction === 'asc' ? comparison : -comparison;
+    });
+
+    return sorted;
+  }, [data, getSortableValue, sortState]);
+
+  const getNextSortState = (column: ColumnDef<T>): SortState => {
+    const accessor = String(column.accessor);
+
+    if (!sortState || sortState.accessor !== accessor) {
+      return { accessor, direction: 'asc' };
+    }
+
+    if (sortState.direction === 'asc') {
+      return { accessor, direction: 'desc' };
+    }
+
+    return null;
+  };
+
+  const renderSortIcon = (column: ColumnDef<T>) => {
+    const accessor = String(column.accessor);
+
+    if (!sortState || sortState.accessor !== accessor) {
+      return <ArrowUpDown className="ml-2 h-4 w-4" />;
+    }
+
+    if (sortState.direction === 'asc') {
+      return <ChevronUp className="ml-2 h-4 w-4" />;
+    }
+
+    return <ChevronDown className="ml-2 h-4 w-4" />;
+  };
+
+  const renderHeaderCell = (column: ColumnDef<T>) => {
+    const canSort = Boolean(column.accessor) && column.enableSorting !== false;
+
+    if (!canSort) {
+      return renderHeader(column);
+    }
+
+    return (
+      <Button variant="ghost" className="h-auto p-0 font-medium hover:bg-transparent" onClick={() => setSortState(getNextSortState(column))}>
+        {renderHeader(column)}
+        {renderSortIcon(column)}
+      </Button>
+    );
+  };
+
   const EmptyIcon = emptyMessage.icon || Users;
 
   // Loading state
@@ -79,7 +175,7 @@ export function DataTable<T>({
           <TableRow>
             {columns?.map((column, index) => (
               <TableHead key={column.id || (column.accessor as string) || `header-${index}`} className={column.className}>
-                {renderHeader(column)}
+                {renderHeaderCell(column)}
               </TableHead>
             ))}
           </TableRow>
@@ -106,7 +202,7 @@ export function DataTable<T>({
           <TableRow>
             {columns?.map((column, index) => (
               <TableHead key={column.id || (column.accessor as string) || `header-${index}`} className={column.className}>
-                {renderHeader(column)}
+                {renderHeaderCell(column)}
               </TableHead>
             ))}
           </TableRow>
@@ -139,13 +235,13 @@ export function DataTable<T>({
         <TableRow>
           {columns?.map((column, index) => (
             <TableHead key={column.id || (column.accessor as string) || `header-${index}`} className={column.className}>
-              {renderHeader(column)}
+              {renderHeaderCell(column)}
             </TableHead>
           ))}
         </TableRow>
       </TableHeader>
       <TableBody>
-        {data?.map((item) => (
+        {sortedData?.map((item) => (
           <TableRow key={String(item[keyField])}>
             {columns?.map((column, index) => (
               <TableCell key={`${String(item[keyField])}-${column.id || (column.accessor as string) || index}`} className={column.className}>
