@@ -4,6 +4,7 @@ interface GarudaParams {
   page?: number;
   limit?: number;
   search?: string;
+  institution_id?: string;
 }
 
 export interface GarudaPayload {

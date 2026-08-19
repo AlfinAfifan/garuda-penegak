@@ -75,7 +75,14 @@ export default function UserPage() {
 
   const handleSubmit = async (data: UserData) => {
     if (editingData) {
-      await toast.promise(updateData.mutateAsync({ id: editingData._id, data: {...data, institution_id: data.institution_id || null} }), {
+      // Password opsional saat edit: jangan kirim jika dibiarkan kosong
+      const { password, ...rest } = data as UserData & { password?: string };
+      const payload = {
+        ...rest,
+        institution_id: data.institution_id || null,
+        ...(password && password.trim() !== '' ? { password } : {}),
+      };
+      await toast.promise(updateData.mutateAsync({ id: editingData._id, data: payload }), {
         loading: 'Mengirim permintaan...',
         success: 'Data berhasil disimpan!',
         error: (err) => `Gagal menyimpan request: ${err.message}`,
@@ -217,7 +224,8 @@ export default function UserPage() {
 
       <InputModal
         open={modalOpen}
-        isLoading={createData.isPending}
+        isEdit={!!editingData}
+        isLoading={createData.isPending || updateData.isPending}
         initialValues={initialValues}
         onClose={() => {
           setModalOpen(false);

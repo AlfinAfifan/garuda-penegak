@@ -41,17 +41,24 @@ export const PATCH = async (req: NextRequest, { params }: { params: Promise<{ id
 
     // Parse the request body
     const body = await req.json();
-    const { name, email, password, role, institution_id } = body;
+    const { name, email, password, role, institution_id, sub_district } = body;
     if (!id || !Types.ObjectId.isValid(id)) {
       return new NextResponse('Invalid user ID', { status: 400 });
     }
     // Connect to the database
     await connect();
 
-    const hashedPassword = await hash(password, 10);
+    // Build payload update, hanya field yang dikirim yang akan diubah
+    const updateData: Record<string, any> = { name, email, role, institution_id: institution_id || null, sub_district: sub_district || null };
+
+    // Password bersifat opsional saat edit. Jika tidak dikirim / kosong,
+    // password lama tetap dipertahankan.
+    if (typeof password === 'string' && password.trim() !== '') {
+      updateData.password = await hash(password, 10);
+    }
 
     // Find the user by ID and update
-    const updatedUser = await User.findByIdAndUpdate(id, { name, email, password: hashedPassword, role, institution_id }, { new: true, runValidators: true }).select('-password');
+    const updatedUser = await User.findByIdAndUpdate(id, updateData, { new: true, runValidators: true }).select('-password');
 
     if (!updatedUser) {
       return new NextResponse('User not found', { status: 404 });

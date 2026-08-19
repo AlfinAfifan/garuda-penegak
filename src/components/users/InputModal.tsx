@@ -6,20 +6,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { SearchableSelect } from '../ui/searchable-select';
 import { getInstitution } from '@/services/instantion';
 import { useQuery } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const inputSchema = Yup.object().shape({
-  name: Yup.string().required('Nama wajib diisi'),
-  email: Yup.string().email('Format email tidak valid').required('Email wajib diisi'),
-  password: Yup.string(),
-  role: Yup.string().required('Role wajib diisi'),
-  institution_id: Yup.string().nullable(),
-  sub_district: Yup.string(),
-});
+const buildInputSchema = (isEdit: boolean) =>
+  Yup.object().shape({
+    name: Yup.string().required('Nama wajib diisi'),
+    email: Yup.string().email('Format email tidak valid').required('Email wajib diisi'),
+    // Saat edit, password opsional (kosongkan untuk mempertahankan password lama)
+    password: isEdit ? Yup.string().min(6, 'Password minimal 6 karakter') : Yup.string().min(6, 'Password minimal 6 karakter').required('Password wajib diisi'),
+    role: Yup.string().required('Role wajib diisi'),
+    institution_id: Yup.string().nullable(),
+    sub_district: Yup.string(),
+  });
 
 interface InputModalProps {
   open: boolean;
@@ -27,6 +30,7 @@ interface InputModalProps {
   onSubmit: (values: any) => void;
   initialValues?: Partial<any>;
   isLoading?: boolean;
+  isEdit?: boolean;
 }
 
 const list_sub_districts = [
@@ -46,10 +50,15 @@ const list_sub_districts = [
   { _id: 'watulimo', name: 'Watulimo' },
 ];
 
-export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }: InputModalProps) {
+export function InputModal({ open, onClose, onSubmit, initialValues, isLoading, isEdit = false }: InputModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [paramsInstitution, setParamsInstitution] = useState({ search: '', page: 1, limit: 10 });
   const [paramsSubDistrict, setParamsSubDistrict] = useState({ search: '', page: 1, limit: 10 });
+
+  // Reset visibilitas password setiap modal dibuka/ditutup
+  useEffect(() => {
+    if (!open) setShowPassword(false);
+  }, [open]);
 
   const { data: dataInstitution, isPending: isPendingInstitution } = useQuery({
     queryKey: ['institutions', paramsInstitution],
@@ -60,9 +69,9 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-xl ">
         <DialogHeader>
-          <DialogTitle>Tambah User</DialogTitle>
+          <DialogTitle>{isEdit ? 'Edit User' : 'Tambah User'}</DialogTitle>
         </DialogHeader>
-        <Formik initialValues={initialValues} validationSchema={inputSchema} onSubmit={onSubmit}>
+        <Formik initialValues={initialValues} enableReinitialize validationSchema={buildInputSchema(isEdit)} onSubmit={onSubmit}>
           {({ values, handleChange, handleBlur, setFieldValue }) => (
             <Form className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-7 my-4">
@@ -132,8 +141,32 @@ export function InputModal({ open, onClose, onSubmit, initialValues, isLoading }
                   <ErrorMessage name="email" component="div" className="text-red-500 text-xs mt-1" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Masukkan password" value={values.password} onChange={handleChange} onBlur={handleBlur} />
+                  <Label htmlFor="password">
+                    Password
+                    {isEdit && <span className="ml-1 text-xs font-normal text-muted-foreground">(opsional)</span>}
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder={isEdit ? 'Kosongkan jika tidak diubah' : 'Masukkan password'}
+                      value={values.password ?? ''}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      className="pr-10"
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                   <ErrorMessage name="password" component="div" className="text-red-500 text-xs mt-1" />
                 </div>
               </div>

@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = parseInt(searchParams.get('limit') || '10', 10);
   const search = searchParams.get('search') || '';
+  const institutionId = searchParams.get('institution_id') || '';
 
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
@@ -70,11 +71,22 @@ export async function GET(req: NextRequest) {
         ]
       : []),
 
+    // Filter by lembaga (institution) dari anggota
+    ...(institutionId && Types.ObjectId.isValid(institutionId)
+      ? [
+          {
+            $match: {
+              'member.institution_id': new Types.ObjectId(institutionId),
+            },
+          },
+        ]
+      : []),
+
     ...(search
       ? [
           {
             $match: {
-              $or: [{ 'member.name': { $regex: search, $options: 'i' } }, { 'member.phone': { $regex: search, $options: 'i' } }],
+              $or: [{ 'member.name': { $regex: search, $options: 'i' } }, { 'member.phone': { $regex: search, $options: 'i' } }, { 'institution.name': { $regex: search, $options: 'i' } }],
             },
           },
         ]
@@ -96,6 +108,9 @@ export async function GET(req: NextRequest) {
                 name: '$member.name',
                 nta: '$member.member_number',
               },
+              institution_id: '$institution._id',
+              institution_name: '$institution.name',
+              institution_sub_district: '$institution.sub_district',
               level_tku: 1,
               total_purwa: 1,
               total_madya: 1,
