@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardAction } from '@/components/ui/card';
-import { CheckCircle, CircleCheckBig, Clock, FileText, Plus, Search, SquarePen, Trash2, Trophy, X } from 'lucide-react';
+import { CheckCircle, CircleCheckBig, Clock, FileDown, FileText, Plus, Printer, Search, SquarePen, Trash2, Trophy, X } from 'lucide-react';
 import { DataTable, ColumnDef } from '@/components/ui/data-table';
 import { CustomPagination } from '@/components/ui/pagination';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,9 @@ import { UpdateConfirmation } from '@/components/ui/update-confirmation';
 import { useSession } from 'next-auth/react';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { getInstitution } from '@/services/instantion';
+import { downloadGarudaCertificate, downloadGarudaCertificates, MAX_BULK_CERTIFICATE } from '@/lib/generate-certificate';
+import moment from 'moment';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function GarudaPage() {
   const { data: session } = useSession();
@@ -35,6 +38,10 @@ export default function GarudaPage() {
 
   const [editingData, setEditingData] = useState<GarudaData | null>(null);
   const [dataDelete, setDataDelete] = useState<GarudaData | null>(null);
+  const [certificateId, setCertificateId] = useState<string | null>(null);
+  // data terpilih disimpan utuh supaya pilihan tetap bertahan saat pindah halaman/filter
+  const [selected, setSelected] = useState<Record<string, GarudaData>>({});
+  const [isBulkPending, setIsBulkPending] = useState(false);
 
   const [initialValues, setInitialValues] = useState<GarudaPayload>({
     member_id: '',
@@ -118,6 +125,93 @@ export default function GarudaPage() {
     setDeleteModal(true);
   };
 
+  /** Ubah satu baris tabel jadi data yang dicetak di sertifikat. */
+  const toCertificate = (item: GarudaData) => ({
+    name: item.member_id?.name || '',
+    nta: item.member_id?.nta || '',
+    institution: item.institution_name || '',
+    date: item.approved_at,
+    number: item.certificate_number,
+    year: item.certificate_year,
+  });
+
+  const handleDownloadCertificate = async (item: GarudaData) => {
+    setCertificateId(item._id);
+    try {
+      await toast.promise(downloadGarudaCertificate(toCertificate(item)), {
+        loading: 'Menyiapkan sertifikat...',
+        success: 'Sertifikat berhasil diunduh!',
+        error: (err) => `Gagal membuat sertifikat: ${err.message}`,
+      });
+    } finally {
+      setCertificateId(null);
+    }
+  };
+
+  const selectedList = useMemo(() => Object.values(selected), [selected]);
+  const selectedCount = selectedList.length;
+
+  // hanya data approved yang punya sertifikat, jadi hanya itu yang bisa dipilih
+  const printableRows = useMemo(() => (data?.data ?? []).filter((item: GarudaData) => item.status === 1), [data]);
+  const selectedOnPage = printableRows.filter((item: GarudaData) => selected[item._id]).length;
+  const isAllPageSelected = printableRows.length > 0 && selectedOnPage === printableRows.length;
+
+  const handleToggleRow = (item: GarudaData) => {
+    const isSelected = Boolean(selected[item._id]);
+    if (!isSelected && selectedCount >= MAX_BULK_CERTIFICATE) {
+      toast.error(`Maksimal ${MAX_BULK_CERTIFICATE} data per sekali cetak`);
+      return;
+    }
+    setSelected((prev) => {
+      const next = { ...prev };
+      if (isSelected) delete next[item._id];
+      else next[item._id] = item;
+      return next;
+    });
+  };
+
+  const handleToggleAllOnPage = () => {
+    if (isAllPageSelected) {
+      setSelected((prev) => {
+        const next = { ...prev };
+        printableRows.forEach((item: GarudaData) => delete next[item._id]);
+        return next;
+      });
+      return;
+    }
+
+    const next = { ...selected };
+    let skipped = 0;
+    printableRows.forEach((item: GarudaData) => {
+      if (next[item._id]) return;
+      if (Object.keys(next).length >= MAX_BULK_CERTIFICATE) {
+        skipped += 1;
+        return;
+      }
+      next[item._id] = item;
+    });
+    if (skipped > 0) {
+      toast.error(`Maksimal ${MAX_BULK_CERTIFICATE} data, ${skipped} data tidak ikut terpilih`);
+    }
+    setSelected(next);
+  };
+
+  const handleBulkDownload = async () => {
+    setIsBulkPending(true);
+    try {
+      await toast.promise(downloadGarudaCertificates(selectedList.map(toCertificate)), {
+        loading: `Menyiapkan ${selectedCount} sertifikat...`,
+        success: 'Sertifikat berhasil diunduh!',
+        error: (err) => `Gagal membuat sertifikat: ${err.message}`,
+      });
+      setSelected({});
+    } catch {
+      // pesan error sudah ditampilkan lewat toast
+    } finally {
+      setIsBulkPending(false);
+    }
+  };
+
   const getStatusBadge = (status: number) => {
     switch (status) {
       case 0:
@@ -143,6 +237,28 @@ export default function GarudaPage() {
   }, [setButtonAction, isAdminKecamatan]);
 
   const columns: ColumnDef<GarudaData>[] = [
+    {
+      id: 'select',
+      className: 'w-10',
+      header: (
+        <Checkbox
+          checked={isAllPageSelected}
+          indeterminate={selectedOnPage > 0 && !isAllPageSelected}
+          onChange={handleToggleAllOnPage}
+          disabled={printableRows.length === 0 || isBulkPending}
+          aria-label="Pilih semua data approved di halaman ini"
+        />
+      ),
+      cell: (item) => (
+        <Checkbox
+          checked={Boolean(selected[item._id])}
+          onChange={() => handleToggleRow(item)}
+          disabled={item.status !== 1 || isBulkPending}
+          title={item.status !== 1 ? 'Hanya data approved yang punya sertifikat' : 'Pilih untuk cetak massal'}
+          aria-label={`Pilih ${item.member_id?.name || 'data'}`}
+        />
+      ),
+    },
     { header: 'Anggota', accessor: 'member_id.name' },
     { header: 'NTA', accessor: 'member_id.nta' },
     { header: 'Lembaga', accessor: 'institution_name', cell: (item) => item.institution_name || '-' },
@@ -150,6 +266,7 @@ export default function GarudaPage() {
     { header: 'Level TKU', accessor: 'level_tku' },
     { header: 'Total TKK', accessor: 'total_tkk' },
     { header: 'Status', accessor: 'status', cell: (item) => getStatusBadge(item.status) },
+    { header: 'Waktu Approve', accessor: 'approved_at', cell: (item) => (item.approved_at ? moment(item.approved_at).format('DD/MM/YYYY HH:mm') : '-') },
     {
       header: 'Actions',
       accessor: 'id',
@@ -162,6 +279,17 @@ export default function GarudaPage() {
                 <CircleCheckBig className="h-4 w-4" />
               </Button>
             )}
+
+            {/* sertifikat hanya bisa dicetak untuk data yang sudah approved */}
+            <Button
+              disabled={item.status !== 1 || certificateId === item._id}
+              onClick={() => handleDownloadCertificate(item)}
+              size="icon"
+              className="size-8 bg-green-50 hover:bg-green-100 text-green-600"
+              title="Unduh sertifikat"
+            >
+              <FileDown className="h-4 w-4" />
+            </Button>
 
             {!isAdminKecamatan && (
               <Button disabled={item.status !== 0} onClick={() => handleDelete(item)} size="icon" className="size-8 bg-red-50 hover:bg-red-100 text-red-600">
@@ -259,6 +387,23 @@ export default function GarudaPage() {
           </CardAction>
         </CardHeader>
         <CardContent>
+          {selectedCount > 0 && (
+            <div className="mb-4 flex flex-col gap-3 rounded-md border border-primary-200 bg-primary-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">{selectedCount}</span> data dipilih (maksimal {MAX_BULK_CERTIFICATE} per sekali cetak)
+              </p>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setSelected({})} disabled={isBulkPending}>
+                  Batalkan pilihan
+                </Button>
+                <Button size="sm" className="bg-primary-600 hover:bg-primary-700" onClick={handleBulkDownload} disabled={isBulkPending}>
+                  <Printer className="mr-2 h-4 w-4" />
+                  {isBulkPending ? 'Menyiapkan...' : `Cetak ${selectedCount} Sertifikat`}
+                </Button>
+              </div>
+            </div>
+          )}
+
           <DataTable
             columns={columns}
             data={data?.data}

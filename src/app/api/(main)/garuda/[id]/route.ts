@@ -5,6 +5,7 @@ import Garuda from '@/lib/modals/garuda';
 import { getToken } from 'next-auth/jwt';
 import ActivityLog from '@/lib/modals/logs';
 import Member from '@/lib/modals/member';
+import { garudaCertificateKey, getNextSequence } from '@/lib/counter';
 
 export const GET = async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   try {
@@ -48,7 +49,23 @@ export const PATCH = async (req: NextRequest, { params }: { params: Promise<{ id
       return new NextResponse('Invalid Garuda ID', { status: 400 });
     }
     await connect();
-    const updatedGaruda = await Garuda.findByIdAndUpdate(id, { status: 1, approved_by: token.name }, { new: true, runValidators: true }).populate({ path: 'member_id', select: 'name nta', model: Member });
+
+    const garuda = await Garuda.findOne({ _id: id, is_delete: 0 });
+    if (!garuda) {
+      return new NextResponse('Garuda not found', { status: 404 });
+    }
+
+    const approvedAt = new Date();
+    const payload: Record<string, unknown> = { status: 1, approved_by: token.name, approved_at: approvedAt };
+
+    // Nomor sertifikat hanya diberikan sekali supaya cetak ulang selalu bernomor sama
+    if (!garuda.certificate_number) {
+      const year = approvedAt.getFullYear();
+      payload.certificate_number = await getNextSequence(garudaCertificateKey(year));
+      payload.certificate_year = year;
+    }
+
+    const updatedGaruda = await Garuda.findOneAndUpdate({ _id: id, is_delete: 0 }, payload, { new: true, runValidators: true }).populate({ path: 'member_id', select: 'name nta', model: Member });
     if (!updatedGaruda) {
       return new NextResponse('Garuda not found', { status: 404 });
     }

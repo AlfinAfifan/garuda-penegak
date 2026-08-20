@@ -1,6 +1,7 @@
 export type GarudaMember = {
   _id: string;
   name: string;
+  nta: string;
 };
 
 export type GarudaData = {
@@ -15,6 +16,9 @@ export type GarudaData = {
   total_utama: string;
   status: number;
   approved_by: string | null;
+  approved_at: string | null;
+  certificate_number: number | null;
+  certificate_year: number | null;
   createdAt: string;
   updatedAt: string;
 };

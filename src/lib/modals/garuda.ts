@@ -29,6 +29,18 @@ const garudaSchema = new Schema(
       type: String,
       default: null,
     },
+    approved_at: {
+      type: Date,
+      default: null,
+    },
+    certificate_number: {
+      type: Number, // nomor urut sertifikat, direset tiap tahun
+      default: null,
+    },
+    certificate_year: {
+      type: Number,
+      default: null,
+    },
     is_delete: {
       type: Number, // 0: not deleted, 1: deleted
       enum: [0, 1], 
