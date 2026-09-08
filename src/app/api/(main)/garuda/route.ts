@@ -6,6 +6,7 @@ import ActivityLog from '@/lib/modals/logs';
 import { getToken } from 'next-auth/jwt';
 import Tkk from '@/lib/modals/tkk';
 import Tku from '@/lib/modals/tku';
+import TypeTkk from '@/lib/modals/type_tkk';
 import { Types } from 'mongoose';
 
 export async function GET(req: NextRequest) {
@@ -174,49 +175,89 @@ export const POST = async (req: NextRequest) => {
     const tkks = await Tkk.find({ member_id: member_id, is_delete: 0 }).lean();
     const tku = await Tku.find({ member_id: member_id, is_delete: 0 }).lean();
 
+    // Tentukan tingkat TKU tertinggi (Penegak: Bantara -> Laksana)
     let levelTku = '';
     if (Array.isArray(tku) && tku.length > 0) {
-      const tkuItem = tku[0];
-      if (tkuItem.laksana) levelTku = 'LAKSANA';
-      else if (tkuItem.bantara) levelTku = 'BANTARA';
+      if (tku.some((item) => item.laksana === true)) levelTku = 'LAKSANA';
+      else if (tku.some((item) => item.bantara === true)) levelTku = 'BANTARA';
     }
 
-    // Ambil semua TKK berdasarkan tingkat
-    const tkkPurwaArr = tkks.filter((tkk) => tkk.purwa === true);
-    const tkkMadyaArr = tkks.filter((tkk) => tkk.madya === true);
-    const tkkUtamaArr = tkks.filter((tkk) => tkk.utama === true);
+    // Syarat Pramuka Garuda golongan Penegak (SK Kwarnas) - dihitung secara TOTAL, bukan per bidang
+    const MIN_TKK = 10;
+    const MIN_BIDANG = 5;
+    const MIN_PURWA = 5;
+    const MIN_MADYA = 3;
+    const MIN_UTAMA = 2;
 
-    // Hitung jumlah TKK per bidang untuk masing-masing tingkat
-    const bidangPurwa: Record<string, number> = {};
-    tkkPurwaArr.forEach((tkk) => {
+    // Gabungkan (dedupe) TKK per type_tkk_id, karena satu member bisa punya
+    // lebih dari satu record untuk jenis TKK yang sama. Gabung dengan OR per tingkat.
+    const mergedTkk = new Map<string, { purwa: boolean; madya: boolean; utama: boolean }>();
+    tkks.forEach((tkk) => {
       const key = String(tkk.type_tkk_id);
-      bidangPurwa[key] = (bidangPurwa[key] || 0) + 1;
-    });
-    const bidangMadya: Record<string, number> = {};
-    tkkMadyaArr.forEach((tkk) => {
-      const key = String(tkk.type_tkk_id);
-      bidangMadya[key] = (bidangMadya[key] || 0) + 1;
-    });
-    const bidangUtama: Record<string, number> = {};
-    tkkUtamaArr.forEach((tkk) => {
-      const key = String(tkk.type_tkk_id);
-      bidangUtama[key] = (bidangUtama[key] || 0) + 1;
+      const prev = mergedTkk.get(key) || { purwa: false, madya: false, utama: false };
+      mergedTkk.set(key, {
+        purwa: prev.purwa || tkk.purwa === true,
+        madya: prev.madya || tkk.madya === true,
+        utama: prev.utama || tkk.utama === true,
+      });
     });
 
-    // Syarat: TKU Purwa: 9 TKK per bidang, Madya: 3 TKK per bidang, Utama: 2 TKK per bidang (masing-masing bidang berbeda)
-    const bidangKurangPurwa = Object.values(bidangPurwa).filter((count) => count < 9).length > 0 || Object.keys(bidangPurwa).length === 0;
-    const bidangKurangMadya = Object.values(bidangMadya).filter((count) => count < 3).length > 0 || Object.keys(bidangMadya).length === 0;
-    const bidangKurangUtama = Object.values(bidangUtama).filter((count) => count < 2).length > 0 || Object.keys(bidangUtama).length === 0;
+    // Ambil bidang (sector) dari master TypeTkk untuk semua jenis TKK milik member
+    const typeTkkIds = Array.from(mergedTkk.keys()).filter((id) => Types.ObjectId.isValid(id));
+    const typeTkkList = await TypeTkk.find({ _id: { $in: typeTkkIds.map((id) => new Types.ObjectId(id)) } })
+      .select('_id sector')
+      .lean();
+    const sectorMap = new Map<string, string>();
+    typeTkkList.forEach((type: any) => {
+      sectorMap.set(String(type._id), type.sector || 'Tanpa Bidang');
+    });
 
-    if (levelTku !== 'LAKSANA' || bidangKurangPurwa || bidangKurangMadya || bidangKurangUtama) {
+    // Hitung hanya TKK yang minimal sudah dicapai satu tingkat
+    let totalPurwa = 0;
+    let totalMadya = 0;
+    let totalUtama = 0;
+    const bidangSet = new Set<string>();
+    let jumlahTkk = 0;
+
+    mergedTkk.forEach((tingkat, typeTkkId) => {
+      if (!tingkat.purwa && !tingkat.madya && !tingkat.utama) return;
+      jumlahTkk += 1;
+      bidangSet.add(sectorMap.get(typeTkkId) || 'Tanpa Bidang');
+      if (tingkat.purwa) totalPurwa += 1;
+      if (tingkat.madya) totalMadya += 1;
+      if (tingkat.utama) totalUtama += 1;
+    });
+
+    const jumlahBidang = bidangSet.size;
+
+    const kekurangan: string[] = [];
+    if (levelTku !== 'LAKSANA') {
+      kekurangan.push(`TKU harus Laksana (saat ini ${levelTku ? levelTku.charAt(0) + levelTku.slice(1).toLowerCase() : 'belum ada TKU'})`);
+    }
+    if (jumlahTkk < MIN_TKK) {
+      kekurangan.push(`minimal ${MIN_TKK} macam TKK (saat ini ${jumlahTkk})`);
+    }
+    if (jumlahBidang < MIN_BIDANG) {
+      kekurangan.push(`minimal ${MIN_BIDANG} bidang TKK (saat ini ${jumlahBidang})`);
+    }
+    if (totalPurwa < MIN_PURWA) {
+      kekurangan.push(`minimal ${MIN_PURWA} TKK Purwa (saat ini ${totalPurwa})`);
+    }
+    if (totalMadya < MIN_MADYA) {
+      kekurangan.push(`minimal ${MIN_MADYA} TKK Madya (saat ini ${totalMadya})`);
+    }
+    if (totalUtama < MIN_UTAMA) {
+      kekurangan.push(`minimal ${MIN_UTAMA} TKK Utama (saat ini ${totalUtama})`);
+    }
+
+    if (kekurangan.length > 0) {
       return new NextResponse(
         JSON.stringify({
-          message: 'Syarat tidak terpenuhi: TKU harus Laksana, Purwa: 5 TKK per bidang, Madya: 3 TKK per bidang, Utama: 2 TKK per bidang',
+          message: `Syarat tidak terpenuhi: ${kekurangan.join(', ')}`,
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
-
     // --- END VALIDATION ---
     // Cek jika member_id sudah ada di Garuda
     const existingGaruda = await Garuda.findOne({ member_id: member_id });
@@ -224,11 +265,8 @@ export const POST = async (req: NextRequest) => {
       return new NextResponse(JSON.stringify({ message: 'Member ini sudah terdaftar di data Garuda.' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    // Set jumlah TKK sesuai syarat baru
-    const tkkPurwa = 0; // Tidak dipakai di syarat baru
-    const tkkMadya = tkkMadyaArr.length;
-    const tkkUtama = tkkUtamaArr.length;
-    const newGaruda = new Garuda({ member_id: member_id, level_tku: levelTku, total_purwa: tkkPurwa, total_madya: tkkMadya, total_utama: tkkUtama, status: 0 });
+    // Simpan jumlah asli hasil hitungan (setelah dedupe per jenis TKK)
+    const newGaruda = new Garuda({ member_id: member_id, level_tku: levelTku, total_purwa: totalPurwa, total_madya: totalMadya, total_utama: totalUtama, status: 0 });
     await newGaruda.save();
     await newGaruda.populate({ path: 'member_id', select: 'name nta', model: Member });
 
