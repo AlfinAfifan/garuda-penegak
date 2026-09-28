@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardAction } from '@/components/ui/card';
-import { CheckCircle, CircleCheckBig, Clock, FileDown, FileText, Plus, Printer, Search, SquarePen, Trash2, Trophy, X } from 'lucide-react';
+import { CheckCircle, CircleCheckBig, Clock, FileDown, FileText, FolderDown, Plus, Printer, Search, SquarePen, Trash2, Trophy, X } from 'lucide-react';
 import { DataTable, ColumnDef } from '@/components/ui/data-table';
 import { CustomPagination } from '@/components/ui/pagination';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 import { Input } from '@/components/ui/input';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { useNavbarAction } from '../layout';
-import { approveGaruda, createGaruda, deleteGaruda, GarudaPayload, getGaruda, getSummaryGaruda } from '@/services/garuda';
+import { approveGaruda, createGaruda, deleteGaruda, exportGaruda, GarudaPayload, getGaruda, getSummaryGaruda } from '@/services/garuda';
 import { InputModal } from '@/components/garuda/InputModal';
 import { UpdateConfirmation } from '@/components/ui/update-confirmation';
 import { useSession } from 'next-auth/react';
@@ -21,6 +21,7 @@ import { getInstitution } from '@/services/instantion';
 import { downloadGarudaCertificate, downloadGarudaCertificates, MAX_BULK_CERTIFICATE } from '@/lib/generate-certificate';
 import moment from 'moment';
 import { Checkbox } from '@/components/ui/checkbox';
+import { utils, writeFile } from 'xlsx';
 
 export default function GarudaPage() {
   const { data: session } = useSession();
@@ -212,6 +213,40 @@ export default function GarudaPage() {
     }
   };
 
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Export mengikuti filter & pencarian yang sedang aktif, semua halaman sekaligus
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const response = await exportGaruda({ search: params.search, institution_id: params.institution_id });
+      const statusLabel = ['Pending', 'Approved'];
+      const rows = (response.data as GarudaData[]).map((item) => ({
+        Anggota: item.member_id?.name || '',
+        NTA: item.member_id?.nta || '',
+        Lembaga: item.institution_name || '-',
+        Kwaran: item.institution_sub_district || '-',
+        'Level TKU': item.level_tku || '',
+        'Total Purwa': item.total_purwa || 0,
+        'Total Madya': item.total_madya || 0,
+        'Total Utama': item.total_utama || 0,
+        Status: statusLabel[item.status] ?? 'Rejected',
+        'Waktu Approve': item.approved_at ? moment(item.approved_at).format('DD/MM/YYYY HH:mm') : '-',
+      }));
+
+      const worksheet = utils.json_to_sheet(rows);
+      worksheet['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 12 }, { wch: 10 }, { wch: 18 }];
+      const workbook = utils.book_new();
+      utils.book_append_sheet(workbook, worksheet, 'RekapGaruda');
+      writeFile(workbook, 'RekapGaruda.xlsx', { compression: true });
+    } catch (error) {
+      console.error('Error downloading export:', error);
+      toast.error('Gagal mengunduh data. Silakan coba lagi.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const getStatusBadge = (status: number) => {
     switch (status) {
       case 0:
@@ -264,7 +299,15 @@ export default function GarudaPage() {
     { header: 'Lembaga', accessor: 'institution_name', cell: (item) => item.institution_name || '-' },
     { header: 'Kwaran', accessor: 'institution_sub_district', cell: (item) => <span className="capitalize">{item.institution_sub_district || '-'}</span> },
     { header: 'Level TKU', accessor: 'level_tku' },
-    { header: 'Total TKK', accessor: 'total_tkk' },
+    {
+      header: 'Total TKK',
+      accessor: 'total_purwa',
+      cell: (item) => (
+        <span>
+          Purwa: {item.total_purwa || 0}, Madya: {item.total_madya || 0}, Utama: {item.total_utama || 0}
+        </span>
+      ),
+    },
     { header: 'Status', accessor: 'status', cell: (item) => getStatusBadge(item.status) },
     { header: 'Waktu Approve', accessor: 'approved_at', cell: (item) => (item.approved_at ? moment(item.approved_at).format('DD/MM/YYYY HH:mm') : '-') },
     {
@@ -281,13 +324,7 @@ export default function GarudaPage() {
             )}
 
             {/* sertifikat hanya bisa dicetak untuk data yang sudah approved */}
-            <Button
-              disabled={item.status !== 1 || certificateId === item._id}
-              onClick={() => handleDownloadCertificate(item)}
-              size="icon"
-              className="size-8 bg-green-50 hover:bg-green-100 text-green-600"
-              title="Unduh sertifikat"
-            >
+            <Button disabled={item.status !== 1 || certificateId === item._id} onClick={() => handleDownloadCertificate(item)} size="icon" className="size-8 bg-green-50 hover:bg-green-100 text-green-600" title="Unduh sertifikat">
               <FileDown className="h-4 w-4" />
             </Button>
 
@@ -372,18 +409,17 @@ export default function GarudaPage() {
             )}
             <div className="relative w-full sm:w-80">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari berdasarkan nama / lembaga..."
-                value={params.search}
-                onChange={(e) => setParams((prev) => ({ ...prev, search: e.target.value, page: 1 }))}
-                className="pl-8 w-full"
-              />
+              <Input placeholder="Cari berdasarkan nama / lembaga..." value={params.search} onChange={(e) => setParams((prev) => ({ ...prev, search: e.target.value, page: 1 }))} className="pl-8 w-full" />
               {params.search && (
                 <button onClick={() => setParams((prev) => ({ ...prev, search: '', page: 1 }))} className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground">
                   <X className="h-4 w-4" />
                 </button>
               )}
             </div>
+            <Button className="bg-green-600 hover:bg-green-700" onClick={handleExport} disabled={isExporting || !data?.pagination?.total}>
+              <FolderDown className="w-4 h-4 mr-2" />
+              {isExporting ? 'Menyiapkan...' : 'Excel'}
+            </Button>
           </CardAction>
         </CardHeader>
         <CardContent>

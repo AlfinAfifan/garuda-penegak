@@ -33,6 +33,18 @@ export const getSummaryGaruda = async () => {
   }
 };
 
+export const exportGaruda = async (params: Pick<GarudaParams, 'search' | 'institution_id'>) => {
+  try {
+    const response = await axiosInstance('/garuda/export', {
+      params,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error exporting Garuda data:', error);
+    throw error.response?.data || error;
+  }
+};
+
 export const getGarudaByMemberId = async (member_id: string) => {
   try {
     const response = await axiosInstance(`/garuda/${member_id}`);

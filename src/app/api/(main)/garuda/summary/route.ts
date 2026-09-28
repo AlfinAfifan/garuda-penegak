@@ -2,7 +2,7 @@ import connect from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import Garuda from '@/lib/modals/garuda';
 import { getToken } from 'next-auth/jwt';
-import { Types } from 'mongoose';
+import { garudaFilterStages } from '@/lib/garuda-pipeline';
 
 export const GET = async (req: NextRequest) => {
   try {
@@ -14,51 +14,8 @@ export const GET = async (req: NextRequest) => {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Build aggregation pipeline untuk konsistensi dengan list API
-    const baseMatch = { is_delete: 0 };
-
-    const pipeline: any[] = [
-      { $match: baseMatch },
-      {
-        $lookup: {
-          from: 'members',
-          localField: 'member_id',
-          foreignField: '_id',
-          as: 'member',
-        },
-      },
-      { $unwind: '$member' },
-      // Filter member yang tidak terhapus
-      { $match: { 'member.is_delete': 0 } },
-    ];
-
-    // If not admin or super_admin, filter by user's institution or sub_district
-    if (token.role !== 'admin' && token.role !== 'admin_kecamatan' && token.role !== 'super_admin') {
-      pipeline.push({
-        $match: {
-          'member.institution_id': new Types.ObjectId(token.institution_id),
-        },
-      });
-    } else if (token.role === 'admin_kecamatan' && token.sub_district) {
-      // Untuk admin_kecamatan, filter berdasarkan sub_district dari institution
-      pipeline.push(
-        {
-          $lookup: {
-            from: 'institutions',
-            localField: 'member.institution_id',
-            foreignField: '_id',
-            as: 'institution',
-          },
-        },
-        { $unwind: { path: '$institution', preserveNullAndEmptyArrays: true } },
-        {
-          $match: {
-            'institution.sub_district': token.sub_district,
-            'institution.is_delete': 0,
-          },
-        }
-      );
-    }
+    // Pakai filter yang sama dengan list API supaya jumlahnya konsisten
+    const pipeline = garudaFilterStages(token, '', '');
 
     // Get total garuda
     const totalGarudaPipeline = [...pipeline, { $count: 'total' }];
