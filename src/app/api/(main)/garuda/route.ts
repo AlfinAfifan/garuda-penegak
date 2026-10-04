@@ -73,6 +73,12 @@ export const POST = async (req: NextRequest) => {
       return new NextResponse('Member not found', { status: 404 });
     }
 
+    // Cek jika member_id sudah ada di Garuda
+    const existingGaruda = await Garuda.findOne({ member_id: member_id, is_delete: 0 }).lean();
+    if (existingGaruda) {
+      return new NextResponse(JSON.stringify({ message: 'Member ini sudah terdaftar di data Garuda.' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+
     const tkks = await Tkk.find({ member_id: member_id, is_delete: 0 }).lean();
     const tku = await Tku.find({ member_id: member_id, is_delete: 0 }).lean();
 
@@ -160,11 +166,6 @@ export const POST = async (req: NextRequest) => {
       );
     }
     // --- END VALIDATION ---
-    // Cek jika member_id sudah ada di Garuda
-    const existingGaruda = await Garuda.findOne({ member_id: member_id });
-    if (existingGaruda) {
-      return new NextResponse(JSON.stringify({ message: 'Member ini sudah terdaftar di data Garuda.' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
-    }
 
     // Simpan jumlah asli hasil hitungan (setelah dedupe per jenis TKK)
     const newGaruda = new Garuda({ member_id: member_id, level_tku: levelTku, total_purwa: totalPurwa, total_madya: totalMadya, total_utama: totalUtama, status: 0 });
@@ -175,12 +176,16 @@ export const POST = async (req: NextRequest) => {
     await ActivityLog.create({
       user_id: user_id,
       action: 'create',
-      description: `Menambahkan data Garuda untuk user ${newGaruda.user_id?.name || ''}`,
+      description: `Menambahkan data Garuda untuk user ${newGaruda.member_id?.name || ''}`,
       module: 'Garuda',
     });
 
     return new NextResponse(JSON.stringify({ message: 'Garuda created successfully', data: newGaruda.toObject() }), { status: 201, headers: { 'Content-Type': 'application/json' } });
   } catch (error: any) {
+    // Request bersamaan yang lolos findOne ditahan oleh unique index member_id
+    if (error?.code === 11000) {
+      return new NextResponse(JSON.stringify({ message: 'Member ini sudah terdaftar di data Garuda.' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
     console.error('Error creating Garuda:', error);
     return new NextResponse('Internal Server Error: ' + error.message, { status: 500 });
   }
