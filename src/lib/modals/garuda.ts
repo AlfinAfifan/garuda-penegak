@@ -52,6 +52,9 @@ const garudaSchema = new Schema(
   }
 );
 
+// Satu member hanya boleh punya satu data Garuda aktif (yang sudah dihapus tidak dihitung)
+garudaSchema.index({ member_id: 1 }, { unique: true, partialFilterExpression: { is_delete: 0 } });
+
 const Garuda = models.Garuda || model('Garuda', garudaSchema);
 
 export default Garuda;
