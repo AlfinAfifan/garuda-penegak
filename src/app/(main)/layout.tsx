@@ -195,7 +195,7 @@ interface NavbarProps {
 
 // Optional: subtitle per menu
 const menuSubtitles: Record<string, string> = {
-  Dashboard: 'Ringkasan aktivitas dan statistik',
+  Dashboard: 'Ringkasan aktivitas dan statistik data',
   Lembaga: 'Kelola data lembaga',
   Anggota: 'Kelola data anggota',
   TKU: 'Kelola data TKU',
